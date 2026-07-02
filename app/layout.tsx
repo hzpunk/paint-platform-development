@@ -80,6 +80,7 @@ export default function RootLayout({
           </div>
           <CookieConsent />
           <Toaster position="top-center" richColors />
+          </FavoritesProvider>
         </CartProvider>
         {process.env.NODE_ENV === 'production' && <Analytics />}
       </body>
