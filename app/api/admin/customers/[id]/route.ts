@@ -2,11 +2,12 @@ import { NextResponse } from "next/server";
 import prisma from "@/lib/db";
 import { requireAdmin } from "@/lib/serverAuth";
 
-export async function GET(_: Request, { params }: { params: { id: string } }) {
+export async function GET(_: Request, { params }: { params: Promise<{ id: string }> }) {
+  const { id } = await params;
   const notAllowed = await requireAdmin(_);
   if (notAllowed) return notAllowed;
 
-  const customer = await prisma.user.findUnique({ where: { id: params.id } });
+  const customer = await prisma.user.findUnique({ where: { id } });
   if (!customer) return new Response("Not found", { status: 404 });
 
   const { password, ...safeCustomer } = customer;
@@ -15,8 +16,9 @@ export async function GET(_: Request, { params }: { params: { id: string } }) {
 
 export async function PATCH(
   req: Request,
-  { params }: { params: { id: string } },
+  { params }: { params: Promise<{ id: string }> },
 ) {
+  const { id } = await params;
   const notAllowed = await requireAdmin(req);
   if (notAllowed) return notAllowed;
 
@@ -36,7 +38,7 @@ export async function PATCH(
   }
 
   const updated = await prisma.user.update({
-    where: { id: params.id },
+    where: { id },
     data: allowed,
   });
   const { password, ...safeUpdated } = updated;
@@ -45,13 +47,14 @@ export async function PATCH(
 
 export async function DELETE(
   _: Request,
-  { params }: { params: { id: string } },
+  { params }: { params: Promise<{ id: string }> },
 ) {
+  const { id } = await params;
   const notAllowed = await requireAdmin(_);
   if (notAllowed) return notAllowed;
 
-  await prisma.favorite.deleteMany({ where: { userId: params.id } });
-  await prisma.review.deleteMany({ where: { userId: params.id } });
-  await prisma.user.delete({ where: { id: params.id } });
+  await prisma.favorite.deleteMany({ where: { userId: id } });
+  await prisma.review.deleteMany({ where: { userId: id } });
+  await prisma.user.delete({ where: { id } });
   return new Response(null, { status: 204 });
 }

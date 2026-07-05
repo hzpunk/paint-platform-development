@@ -9,6 +9,13 @@ import {
   Tag,
   MessageSquare,
   User,
+  TrendingUp,
+  DollarSign,
+  MessageCircle,
+  Building2,
+  Info,
+  FilePlus2,
+  Shield,
 } from "lucide-react";
 
 export function AdminSidebar() {
@@ -21,6 +28,14 @@ export function AdminSidebar() {
     { href: "/admin/wholesale", label: "Опт", icon: Slash },
     { href: "/admin/reviews", label: "Отзывы", icon: MessageSquare },
     { href: "/admin/team", label: "Сотрудники", icon: User },
+    { href: "/admin/marketing", label: "Маркетинг", icon: TrendingUp },
+    { href: "/admin/users", label: "Пользователи", icon: Users },
+    { href: "/admin/finance", label: "Финансы", icon: DollarSign },
+    { href: "/admin/feedback", label: "Обратная связь", icon: MessageCircle },
+    { href: "/admin/hzcompany", label: "HzCompany", icon: Building2 },
+    { href: "/admin/info", label: "Информация", icon: Info },
+    { href: "/admin/documents", label: "Документы", icon: FilePlus2 },
+    { href: "/hzcompany", label: "Супер админ", icon: Shield },
     { href: "/admin/settings", label: "Настройки", icon: Settings },
   ];
 

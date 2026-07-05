@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useState, use } from "react";
 import { useRouter } from "next/navigation";
 
 type Item = { name: string; volume: number; quantity: number; price: number };
@@ -12,7 +12,8 @@ type Order = {
   status: string;
 };
 
-export default function OrderPage({ params }: { params: { id: string } }) {
+export default function OrderPage({ params }: { params: Promise<{ id: string }> }) {
+  const { id } = use(params);
   const router = useRouter();
   const [order, setOrder] = useState<Order | null>(null);
   const [status, setStatus] = useState("");
@@ -20,7 +21,7 @@ export default function OrderPage({ params }: { params: { id: string } }) {
   const [audit, setAudit] = useState<any[]>([]);
 
   useEffect(() => {
-    fetch(`/api/admin/orders/${params.id}`)
+    fetch(`/api/admin/orders/${id}`)
       .then((r) => r.json())
       .then((o) => {
         setOrder(o);
@@ -28,7 +29,7 @@ export default function OrderPage({ params }: { params: { id: string } }) {
       });
 
     // fetch audit
-    fetch(`/api/admin/orders/${params.id}`, {
+    fetch(`/api/admin/orders/${id}`, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ action: "audit" }),
@@ -36,7 +37,7 @@ export default function OrderPage({ params }: { params: { id: string } }) {
       .then((r) => r.json())
       .then((a) => setAudit(a || []))
       .catch(() => setAudit([]));
-  }, [params.id]);
+  }, [id]);
 
   async function changeStatus() {
     if (!order) return;
