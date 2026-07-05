@@ -35,20 +35,28 @@ const ITEMS = [
 
 export function Advantages() {
   return (
-    <section className="border-y border-border bg-muted/40">
-      <div className="mx-auto max-w-[1280px] px-4 py-14 md:px-6">
-        <h2 className="mb-8 text-center font-heading text-2xl font-bold md:text-3xl">
-          Почему покупают у нас
-        </h2>
+    <section className="border-y border-border bg-secondary/50">
+      <div className="section-shell py-14 md:py-20">
+        <div className="mb-10 text-center">
+          <p className="text-xs font-semibold uppercase tracking-[0.16em] text-accent-foreground/60">
+            Наши преимущества
+          </p>
+          <h2 className="mt-1 font-heading text-2xl font-bold text-balance md:text-3xl">
+            Почему покупают у нас
+          </h2>
+        </div>
         <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
           {ITEMS.map(({ icon: Icon, title, text }) => (
-            <div key={title} className="flex gap-4 rounded-lg border border-border bg-card p-5">
-              <span className="flex size-11 shrink-0 items-center justify-center rounded-md bg-accent/15 text-accent-foreground">
-                <Icon className="size-5 text-accent" />
+            <div
+              key={title}
+              className="group flex gap-4 rounded-xl border border-border bg-card p-6 shadow-[var(--shadow-card)] transition-all duration-200 hover:-translate-y-0.5 hover:border-accent/50 hover:shadow-[var(--shadow-card-hover)]"
+            >
+              <span className="flex size-12 shrink-0 items-center justify-center rounded-xl bg-accent/15 transition-colors duration-200 group-hover:bg-accent">
+                <Icon className="size-5 text-accent transition-colors duration-200 group-hover:text-accent-foreground" />
               </span>
               <div>
-                <h3 className="font-heading font-semibold">{title}</h3>
-                <p className="mt-1 text-sm leading-relaxed text-muted-foreground">{text}</p>
+                <h3 className="font-heading font-bold">{title}</h3>
+                <p className="mt-1.5 text-sm leading-relaxed text-muted-foreground">{text}</p>
               </div>
             </div>
           ))}

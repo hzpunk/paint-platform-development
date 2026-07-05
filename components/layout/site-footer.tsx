@@ -1,5 +1,5 @@
 import Link from 'next/link'
-import { Paintbrush, Send, Phone, Mail } from 'lucide-react'
+import { Paintbrush, Send, Phone, Mail, MapPin, Clock } from 'lucide-react'
 import { categories } from '@/lib/data'
 
 const infoLinks = [
@@ -18,33 +18,36 @@ const legalLinks = [
 
 export function SiteFooter() {
   return (
-    <footer className="border-t border-border bg-primary text-primary-foreground">
-      <div className="mx-auto max-w-[1280px] px-4 py-12 md:px-6">
-        <div className="grid gap-8 md:grid-cols-2 lg:grid-cols-5">
+    <footer className="bg-primary text-primary-foreground">
+      {/* Акцентная полоса */}
+      <div className="h-1 w-full bg-accent" aria-hidden="true" />
+
+      <div className="section-shell py-14">
+        <div className="grid gap-10 md:grid-cols-2 lg:grid-cols-5">
           <div className="lg:col-span-2">
-            <Link href="/" className="flex items-center gap-2">
-              <span className="flex size-9 items-center justify-center rounded-md bg-primary-foreground text-primary">
+            <Link href="/" className="flex w-fit items-center gap-2">
+              <span className="flex size-10 items-center justify-center rounded-lg bg-accent text-accent-foreground shadow-sm">
                 <Paintbrush className="size-5" />
               </span>
-              <span className="font-heading text-lg font-extrabold">
+              <span className="font-heading text-xl font-extrabold tracking-tight">
                 Краска<span className="text-accent">Проф</span>
               </span>
             </Link>
-            <p className="mt-4 max-w-sm text-sm text-primary-foreground/70">
+            <p className="mt-5 max-w-sm text-sm leading-relaxed text-primary-foreground/70">
               Лакокрасочные материалы для профессионалов и частных мастеров.
               Сертифицированная продукция, колеровка в любой цвет, самовывоз в Москве.
             </p>
-            <div className="mt-4 flex items-center gap-3">
+            <div className="mt-6 flex items-center gap-3">
               <a
                 href="https://vk.com"
-                className="flex size-9 items-center justify-center rounded-md bg-primary-foreground/10 transition-colors hover:bg-primary-foreground/20"
+                className="flex size-10 items-center justify-center rounded-lg bg-primary-foreground/10 transition-all hover:-translate-y-0.5 hover:bg-accent hover:text-accent-foreground"
                 aria-label="ВКонтакте"
               >
                 <span className="text-sm font-bold">VK</span>
               </a>
               <a
                 href="https://t.me"
-                className="flex size-9 items-center justify-center rounded-md bg-primary-foreground/10 transition-colors hover:bg-primary-foreground/20"
+                className="flex size-10 items-center justify-center rounded-lg bg-primary-foreground/10 transition-all hover:-translate-y-0.5 hover:bg-accent hover:text-accent-foreground"
                 aria-label="Telegram"
               >
                 <Send className="size-4" />
@@ -53,8 +56,10 @@ export function SiteFooter() {
           </div>
 
           <nav aria-label="Категории">
-            <h3 className="font-heading text-sm font-bold">Каталог</h3>
-            <ul className="mt-4 space-y-2 text-sm">
+            <h3 className="text-xs font-bold uppercase tracking-[0.16em] text-accent">
+              Каталог
+            </h3>
+            <ul className="mt-5 space-y-2.5 text-sm">
               {categories.map((c) => (
                 <li key={c.slug}>
                   <Link
@@ -69,8 +74,10 @@ export function SiteFooter() {
           </nav>
 
           <nav aria-label="Информация">
-            <h3 className="font-heading text-sm font-bold">Покупателям</h3>
-            <ul className="mt-4 space-y-2 text-sm">
+            <h3 className="text-xs font-bold uppercase tracking-[0.16em] text-accent">
+              Покупателям
+            </h3>
+            <ul className="mt-5 space-y-2.5 text-sm">
               {infoLinks.map((l) => (
                 <li key={l.href}>
                   <Link
@@ -85,24 +92,40 @@ export function SiteFooter() {
           </nav>
 
           <div>
-            <h3 className="font-heading text-sm font-bold">Контакты</h3>
-            <ul className="mt-4 space-y-3 text-sm text-primary-foreground/70">
+            <h3 className="text-xs font-bold uppercase tracking-[0.16em] text-accent">
+              Контакты
+            </h3>
+            <ul className="mt-5 space-y-3 text-sm text-primary-foreground/70">
               <li>
-                <a href="tel:88001234567" className="flex items-center gap-2 hover:text-primary-foreground">
-                  <Phone className="size-4" />8 800 123-45-67
+                <a
+                  href="tel:88001234567"
+                  className="flex items-center gap-2.5 font-semibold text-primary-foreground transition-colors hover:text-accent"
+                >
+                  <Phone className="size-4 shrink-0 text-accent" />8 800 123-45-67
                 </a>
               </li>
               <li>
-                <a href="mailto:info@kraskaprof.ru" className="flex items-center gap-2 hover:text-primary-foreground">
-                  <Mail className="size-4" />info@kraskaprof.ru
+                <a
+                  href="mailto:info@kraskaprof.ru"
+                  className="flex items-center gap-2.5 transition-colors hover:text-primary-foreground"
+                >
+                  <Mail className="size-4 shrink-0 text-accent" />
+                  info@kraskaprof.ru
                 </a>
               </li>
-              <li>ежедневно 9:00–21:00</li>
+              <li className="flex items-center gap-2.5">
+                <Clock className="size-4 shrink-0 text-accent" />
+                ежедневно 9:00–21:00
+              </li>
+              <li className="flex items-start gap-2.5">
+                <MapPin className="mt-0.5 size-4 shrink-0 text-accent" />
+                <span>г. Москва, ул. Красочная, д. 15, стр. 2</span>
+              </li>
             </ul>
           </div>
         </div>
 
-        <div className="mt-10 border-t border-primary-foreground/15 pt-6 text-xs text-primary-foreground/60">
+        <div className="mt-12 border-t border-primary-foreground/15 pt-6 text-xs text-primary-foreground/60">
           <div className="flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
             <div className="space-y-1">
               <p>ООО «КраскаПроф» · ИНН 7701234567 · ОГРН 1157746000000</p>
@@ -111,7 +134,10 @@ export function SiteFooter() {
             <ul className="flex flex-wrap gap-x-4 gap-y-1">
               {legalLinks.map((l) => (
                 <li key={l.href}>
-                  <Link href={l.href} className="hover:text-primary-foreground">
+                  <Link
+                    href={l.href}
+                    className="transition-colors hover:text-primary-foreground"
+                  >
                     {l.label}
                   </Link>
                 </li>
