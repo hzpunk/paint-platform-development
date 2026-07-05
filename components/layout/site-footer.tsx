@@ -3,7 +3,6 @@ import { Paintbrush, Send, Phone, Mail } from 'lucide-react'
 import { categories } from '@/lib/data'
 
 const infoLinks = [
-  { href: '/delivery', label: 'Доставка и оплата' },
   { href: '/colormixing', label: 'Колеровка' },
   { href: '/wholesale', label: 'Оптовикам' },
   { href: '/loyalty', label: 'Программа лояльности' },
@@ -33,7 +32,7 @@ export function SiteFooter() {
             </Link>
             <p className="mt-4 max-w-sm text-sm text-primary-foreground/70">
               Лакокрасочные материалы для профессионалов и частных мастеров.
-              Сертифицированная продукция, колеровка в любой цвет, доставка по всей России.
+              Сертифицированная продукция, колеровка в любой цвет, самовывоз в Москве.
             </p>
             <div className="mt-4 flex items-center gap-3">
               <a

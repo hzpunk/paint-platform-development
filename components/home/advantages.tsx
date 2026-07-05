@@ -1,10 +1,10 @@
-import { Truck, Palette, BadgePercent, Headphones, ShieldCheck, CreditCard } from 'lucide-react'
+import { MapPin, Palette, BadgePercent, Headphones, ShieldCheck, CreditCard } from 'lucide-react'
 
 const ITEMS = [
   {
-    icon: Truck,
-    title: 'Доставка по РФ',
-    text: 'Курьер, пункты выдачи и самовывоз. Отправляем транспортными компаниями по всей стране.',
+    icon: MapPin,
+    title: 'Удобный самовывоз',
+    text: 'Забирайте заказы бесплатно из нашего фирменного магазина-склада в Москве.',
   },
   {
     icon: Palette,
@@ -14,7 +14,7 @@ const ITEMS = [
   {
     icon: CreditCard,
     title: 'Оплата при получении',
-    text: 'Платите картой или наличными курьеру. Для бизнеса — безналичный расчёт с НДС.',
+    text: 'Платите картой или наличными при получении. Для бизнеса — безналичный расчёт с НДС.',
   },
   {
     icon: BadgePercent,

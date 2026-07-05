@@ -1,10 +1,10 @@
 import Link from 'next/link'
-import { ArrowRight, Truck, Palette, ShieldCheck } from 'lucide-react'
+import { ArrowRight, CreditCard, Palette, ShieldCheck } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { PaintCan } from '@/components/product/paint-can'
 
 const HIGHLIGHTS = [
-  { icon: Truck, label: 'Доставка по всей России' },
+  { icon: CreditCard, label: 'Оплата при получении' },
   { icon: Palette, label: 'Колеровка в любой цвет' },
   { icon: ShieldCheck, label: 'Сертифицированные ЛКМ' },
 ]
@@ -23,7 +23,7 @@ export function Hero() {
           <p className="max-w-md text-pretty text-base leading-relaxed text-primary-foreground/80">
             Интерьерные и фасадные краски, эмали, грунтовки и спецсоставы от
             проверенных брендов. Подберём и заколеруем в нужный оттенок,
-            доставим по России и примем оплату при получении.
+            подготовим к самовывозу и примем оплату при получении.
           </p>
           <div className="flex flex-wrap gap-3">
             <Button

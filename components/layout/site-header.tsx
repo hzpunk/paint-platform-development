@@ -1,8 +1,8 @@
-'use client'
+"use client";
 
-import Link from 'next/link'
-import { useRouter } from 'next/navigation'
-import { useState } from 'react'
+import Link from "next/link";
+import { useRouter } from "next/navigation";
+import { useEffect, useState } from "react";
 import {
   Search,
   ShoppingCart,
@@ -10,37 +10,44 @@ import {
   Menu,
   Phone,
   Paintbrush,
-} from 'lucide-react'
-import { Button } from '@/components/ui/button'
-import { Input } from '@/components/ui/input'
-import { Badge } from '@/components/ui/badge'
+  Heart,
+} from "lucide-react";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Badge } from "@/components/ui/badge";
 import {
   Sheet,
   SheetContent,
   SheetHeader,
   SheetTitle,
   SheetTrigger,
-} from '@/components/ui/sheet'
-import { useCart } from '@/components/cart/cart-provider'
-import { categories } from '@/lib/data'
+} from "@/components/ui/sheet";
+import { useCart } from "@/components/cart/cart-provider";
+import { useFavorites } from "@/components/favorites/favorites-provider";
+import { categories } from "@/lib/data";
 
 const NAV = [
-  { href: '/catalog', label: 'Каталог' },
-  { href: '/colormixing', label: 'Колеровка' },
-  { href: '/wholesale', label: 'Оптовикам' },
-  { href: '/delivery', label: 'Доставка' },
-]
+  { href: "/catalog", label: "Каталог" },
+  { href: "/colormixing", label: "Колеровка" },
+  { href: "/wholesale", label: "Оптовикам" },
+];
 
 export function SiteHeader() {
-  const { itemCount } = useCart()
-  const router = useRouter()
-  const [query, setQuery] = useState('')
-  const [open, setOpen] = useState(false)
+  const { itemCount } = useCart();
+  const { favorites } = useFavorites();
+  const router = useRouter();
+  const [query, setQuery] = useState("");
+  const [open, setOpen] = useState(false);
+  const [mounted, setMounted] = useState(false);
+
+  useEffect(() => {
+    setMounted(true);
+  }, []);
 
   function submitSearch(e: React.FormEvent) {
-    e.preventDefault()
-    const q = query.trim()
-    router.push(q ? `/search?q=${encodeURIComponent(q)}` : '/search')
+    e.preventDefault();
+    const q = query.trim();
+    router.push(q ? `/search?q=${encodeURIComponent(q)}` : "/search");
   }
 
   return (
@@ -48,7 +55,7 @@ export function SiteHeader() {
       {/* Верхняя строка: телефон/режим работы */}
       <div className="hidden border-b border-border bg-primary text-primary-foreground md:block">
         <div className="mx-auto flex max-w-[1280px] items-center justify-between px-6 py-1.5 text-xs">
-          <span>Доставка по всей России · Оплата при получении</span>
+          <span>Самовывоз в Москве · Оплата при получении</span>
           <a
             href="tel:88001234567"
             className="flex items-center gap-1.5 font-medium transition-opacity hover:opacity-80"
@@ -63,7 +70,12 @@ export function SiteHeader() {
         <Sheet open={open} onOpenChange={setOpen}>
           <SheetTrigger
             render={
-              <Button variant="ghost" size="icon" className="lg:hidden" aria-label="Меню">
+              <Button
+                variant="ghost"
+                size="icon"
+                className="lg:hidden"
+                aria-label="Меню"
+              >
                 <Menu className="size-5" />
               </Button>
             }
@@ -125,7 +137,10 @@ export function SiteHeader() {
         </nav>
 
         {/* Поиск */}
-        <form onSubmit={submitSearch} className="relative ml-auto hidden max-w-md flex-1 sm:block">
+        <form
+          onSubmit={submitSearch}
+          className="relative ml-auto hidden max-w-md flex-1 sm:block"
+        >
           <Search className="pointer-events-none absolute top-1/2 left-3 size-4 -translate-y-1/2 text-muted-foreground" />
           <Input
             type="search"
@@ -151,6 +166,22 @@ export function SiteHeader() {
           <Button
             variant="ghost"
             size="icon"
+            className="relative"
+            aria-label={
+              mounted ? `Избранное, товаров: ${favorites.length}` : "Избранное"
+            }
+            render={<Link href="/account?tab=favorites" />}
+          >
+            <Heart className="size-5 text-foreground" />
+            {mounted && favorites.length > 0 && (
+              <Badge className="absolute -top-1 -right-1 size-5 rounded-full bg-accent p-0 text-[11px] text-accent-foreground">
+                {favorites.length}
+              </Badge>
+            )}
+          </Button>
+          <Button
+            variant="ghost"
+            size="icon"
             aria-label="Личный кабинет"
             render={<Link href="/account" />}
           >
@@ -166,12 +197,12 @@ export function SiteHeader() {
             <ShoppingCart className="size-5" />
             {itemCount > 0 && (
               <Badge className="absolute -top-1 -right-1 size-5 rounded-full bg-accent p-0 text-[11px] text-accent-foreground">
-                {itemCount > 99 ? '99+' : itemCount}
+                {itemCount > 99 ? "99+" : itemCount}
               </Badge>
             )}
           </Button>
         </div>
       </div>
     </header>
-  )
+  );
 }

@@ -1,0 +1,73 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+model User {
+  id        String   @id @default(uuid())
+  email     String   @unique
+  name      String?
+  role      String   @default("user")
+  password  String?
+  phone     String?
+  bonusBalance Int    @default(0)
+  totalSpent    Int    @default(0)
+  favorites Favorite[]
+  reviews   Review[]
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+model Order {
+  id        String     @id @default(uuid())
+  createdAt DateTime   @default(now())
+  updatedAt DateTime   @updatedAt
+  date      DateTime   @default(now())
+  total     Float
+  status    String
+  items     OrderItem[]
+  bonusEarned Int?
+  tracking    String?
+}
+
+model OrderItem {
+  id      String  @id @default(uuid())
+  order   Order   @relation(fields: [orderId], references: [id])
+  orderId String
+  name    String
+  volume  Float
+  price   Float
+  qty     Int
+}
+
+model AuditEntry {
+  id        String   @id @default(uuid())
+  orderId   String
+  actor     String
+  from      String
+  to        String
+  at        DateTime @default(now())
+}
+
+model Favorite {
+  id        String   @id @default(uuid())
+  user      User     @relation(fields: [userId], references: [id])
+  userId    String
+  productId String
+  createdAt DateTime @default(now())
+  @@unique([userId, productId])
+}
+
+model Review {
+  id        String   @id @default(uuid())
+  user      User     @relation(fields: [userId], references: [id])
+  userId    String
+  productId String
+  rating    Int
+  text      String?
+  createdAt DateTime @default(now())
+}
