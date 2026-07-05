@@ -1,94 +1,101 @@
 "use client";
 
-import React, { createContext, useContext, useEffect, useState } from "react";
+import React, { createContext, useContext, useEffect, useState, useCallback } from "react";
 
-const STORAGE_KEY = "kraskaprof.user.v1";
-
+/**
+ * Тип пользователя на клиенте — соответствует тому, что отдаёт GET /api/me (без пароля).
+ */
 export type User = {
-  name: string;
-  email?: string;
-  phone?: string;
-  bonusBalance?: number;
-  totalSpent?: number;
-  referralCode?: string;
+  id: string;
+  name: string | null;
+  email: string;
+  phone: string | null;
+  role: string;
+  bonusBalance: number;
+  totalSpent: number;
+  lastLoginAt?: string | null;
 };
 
 type AuthContext = {
   user: User | null;
-  login: (email: string, phone: string) => Promise<User>;
-  register: (u: User) => Promise<User>;
-  logout: () => void;
+  loading: boolean;
+  login: (email: string, password: string) => Promise<void>;
+  register: (data: { email: string; name?: string; phone?: string; password: string }) => Promise<void>;
+  logout: () => Promise<void>;
+  refresh: () => Promise<void>;
 };
 
 const Ctx = createContext<AuthContext | null>(null);
 
 export function AuthProvider({ children }: { children: React.ReactNode }) {
   const [user, setUser] = useState<User | null>(null);
+  const [loading, setLoading] = useState(true);
 
-  useEffect(() => {
+  /** Загрузить профиль текущего пользователя из /api/me (JWT в httpOnly cookie) */
+  const refresh = useCallback(async () => {
     try {
-      const raw = localStorage.getItem(STORAGE_KEY);
-      if (raw) setUser(JSON.parse(raw));
-    } catch {}
+      const res = await fetch("/api/me");
+      if (res.ok) {
+        const data = await res.json();
+        setUser(data);
+      } else {
+        setUser(null);
+      }
+    } catch {
+      setUser(null);
+    } finally {
+      setLoading(false);
+    }
   }, []);
 
-  function persist(u: User | null) {
-    try {
-      if (u) localStorage.setItem(STORAGE_KEY, JSON.stringify(u));
-      else localStorage.removeItem(STORAGE_KEY);
-    } catch {}
-  }
+  useEffect(() => {
+    refresh();
+  }, [refresh]);
 
-  async function login(email: string, phone: string) {
-    // simplistic: if stored user matches email/phone, return it; else create a minimal user
-    let u: User | null = null;
-    try {
-      const raw = localStorage.getItem(STORAGE_KEY);
-      if (raw) {
-        const parsed = JSON.parse(raw);
-        if (
-          (parsed.email && parsed.email === email) ||
-          (parsed.phone && parsed.phone === phone)
-        )
-          u = parsed;
-      }
-    } catch {}
-    if (!u) {
-      u = {
-        name: email.split("@")[0] || phone,
-        email,
-        phone,
-        bonusBalance: 0,
-        totalSpent: 0,
-        referralCode:
-          "REF" + Math.random().toString(36).slice(2, 8).toUpperCase(),
-      };
+  async function login(email: string, password: string) {
+    const res = await fetch("/api/auth/login", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ email, password }),
+    });
+
+    if (!res.ok) {
+      const data = await res.json().catch(() => ({}));
+      throw new Error(data.message || "Ошибка входа");
     }
-    setUser(u);
-    persist(u);
-    return u;
+
+    await refresh();
   }
 
-  async function register(u: User) {
-    const toSave = {
-      bonusBalance: 0,
-      totalSpent: 0,
-      referralCode:
-        "REF" + Math.random().toString(36).slice(2, 8).toUpperCase(),
-      ...u,
-    };
-    setUser(toSave);
-    persist(toSave);
-    return toSave;
+  async function register(data: {
+    email: string;
+    name?: string;
+    phone?: string;
+    password: string;
+  }) {
+    const res = await fetch("/api/auth/register", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(data),
+    });
+
+    if (!res.ok) {
+      const body = await res.json().catch(() => ({}));
+      throw new Error(body.message || "Ошибка регистрации");
+    }
+
+    await refresh();
   }
 
-  function logout() {
+  async function logout() {
+    try {
+      await fetch("/api/auth/logout", { method: "POST" });
+    } catch {}
     setUser(null);
-    persist(null);
   }
 
   return (
-    <Ctx.Provider value={{ user, login, register, logout }}>
+    <Ctx.Provider value={{ user, loading, login, register, logout, refresh }}>
       {children}
     </Ctx.Provider>
   );

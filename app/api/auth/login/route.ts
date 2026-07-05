@@ -1,18 +1,27 @@
-import prisma from "@/lib/db";
-import { NextResponse } from "next/server";
-import { verifyPassword, signToken, makeAuthResponse } from "@/lib/serverAuth";
+import { NextRequest, NextResponse } from 'next/server';
+import { verifyPassword, createToken, setAuthCookie } from '@/lib/serverAuth';
+import prisma from '@/lib/db';
 
-export async function POST(req: Request) {
-  const body = await req.json();
-  const { email, password } = body;
-  if (!email || !password) return new Response("Missing", { status: 400 });
-  const user = await prisma.user.findUnique({ where: { email } });
-  if (!user || !user.password) return new Response("Invalid", { status: 401 });
-  const ok = verifyPassword(password, user.password);
-  if (!ok) return new Response("Invalid", { status: 401 });
-  const token = signToken({ id: user.id });
-  return makeAuthResponse(
-    { id: user.id, email: user.email, name: user.name },
-    token,
-  );
+export async function POST(req: NextRequest) {
+  try {
+    const { email, password } = await req.json();
+
+    const user = await prisma.user.findUnique({ where: { email } });
+    if (!user || !user.password) {
+      return NextResponse.json({ message: 'Invalid credentials' }, { status: 401 });
+    }
+
+    const isValid = await verifyPassword(password, user.password);
+    if (!isValid) {
+      return NextResponse.json({ message: 'Invalid credentials' }, { status: 401 });
+    }
+
+    const token = await createToken(user.id, user.role);
+    await setAuthCookie(token);
+
+    return NextResponse.json({ message: 'Logged in successfully' });
+  } catch (error) {
+    console.error('Login error', error);
+    return NextResponse.json({ message: 'Internal server error' }, { status: 500 });
+  }
 }

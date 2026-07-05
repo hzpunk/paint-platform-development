@@ -1,5 +1,4 @@
-// Доменные типы платформы продажи ЛКМ.
-// Единый источник истины для товаров, заказов и программы лояльности.
+import { Product as PrismaProduct, Category as PrismaCategory, Brand as PrismaBrand, Review as PrismaReview, Order as PrismaOrder } from '@prisma/client'
 
 /** Тип краски по составу — используется в фильтрах каталога. */
 export type PaintType =
@@ -37,110 +36,56 @@ export interface ProductSpecs {
   storage: string;
 }
 
-export interface Product {
-  id: string;
-  slug: string;
-  name: string;
-  brand: string;
-  categorySlug: string;
-  type: PaintType;
-  /** Поверхности применения. */
-  surfaces: string[];
-  /** Базовая цена (для минимальной расфасовки), ₽. */
-  price: number;
-  /** Старая цена для товаров по акции, ₽. */
-  oldPrice?: number;
-  packaging: Packaging[];
-  /** Доступные цвета (HEX + название). */
-  colors: { hex: string; name: string }[];
-  images: string[];
-  badges: ProductBadge[];
-  rating: number;
-  reviewsCount: number;
+export interface Product extends Omit<PrismaProduct, 'reviews' | 'specs' | 'packaging' | 'colors'> {
+  categoryId: string;
+  brandId: string;
+  category: Omit<PrismaCategory, 'products'>;
+  brand: Omit<PrismaBrand, 'products'> | string;
   inStock: boolean;
-  /** Можно ли заказать колеровку. */
-  colorable: boolean;
-  shortSpec: string;
-  description: string;
+  packaging: Packaging[];
+  colors: { hex: string; name: string }[];
   specs: ProductSpecs;
-  application: string;
+  reviews?: Review[] | null;
+  badges?: ProductBadge[];
+  oldPrice?: number | null;
+  application?: string | null;
+  colorable?: boolean;
 }
 
-export interface Category {
-  slug: string;
-  name: string;
-  icon: string;
-  description: string;
-}
-
-export interface Brand {
-  slug: string;
-  name: string;
+export interface Category extends PrismaCategory {
+  products?: Product[] | null
 }
 
 export interface Review {
   id: string;
-  productSlug?: string;
-  author: string;
+  productId: string;
+  userId: string;
   rating: number;
-  date: string;
-  text: string;
-  /** Подтверждённый покупатель. */
-  verified: boolean;
+  text?: string | null;
+  createdAt: Date | string;
+  author?: string | null;
+  date?: string | null;
+  user?: {
+    name?: string | null;
+    email?: string | null;
+  } | null;
+  product?: {
+    name?: string;
+    slug?: string;
+    images?: string[];
+  } | null;
 }
 
-export interface BlogPost {
-  slug: string;
-  title: string;
-  category: string;
-  excerpt: string;
-  cover: string;
-  date: string;
-  readingTime: number;
-  content: string;
-  relatedProductSlugs: string[];
-}
-
-/** Позиция в корзине: товар + выбранная расфасовка/цвет + количество. */
 export interface CartItem {
   productId: string;
   slug: string;
   name: string;
-  brand: string;
+  brand: string | { name?: string | null } | null;
   image: string;
   sku: string;
   volume: number;
   price: number;
-  color?: string;
+  color?: string | null;
   quantity: number;
   bonusPoints: number;
-}
-
-/** Статусы заказа для трекинга в личном кабинете. */
-export type OrderStatus =
-  | "Оформлен"
-  | "Собирается"
-  | "В пути"
-  | "Доставлен"
-  | "Отменён";
-
-export interface Order {
-  id: string;
-  date: string;
-  status: OrderStatus;
-  items: { name: string; volume: number; quantity: number; price: number }[];
-  total: number;
-  bonusEarned: number;
-  tracking?: string;
-}
-
-/** Уровни программы лояльности. */
-export interface LoyaltyTier {
-  name: "Стандарт" | "Серебро" | "Золото" | "Платина";
-  /** Порог суммы покупок за 12 мес., ₽. */
-  threshold: number;
-  /** Процент начисления баллов. */
-  rate: number;
-  perks: string[];
-  color: string;
 }

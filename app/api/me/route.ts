@@ -1,41 +1,37 @@
 import { NextResponse } from "next/server";
-import { getUserFromRequest } from "@/lib/serverAuth";
 import prisma from "@/lib/db";
+import { getUserFromCookieHeader } from "@/lib/serverAuth";
 
 export async function GET(req: Request) {
-  const user = await getUserFromRequest(req);
-  if (!user) return new Response("Unauthorized", { status: 401 });
-  // return public profile fields
-  const { id, email, name, phone, bonusBalance, totalSpent } = user;
-  return NextResponse.json({
-    id,
-    email,
-    name,
-    phone,
-    bonusBalance,
-    totalSpent,
-  });
+  const user = await getUserFromCookieHeader(req.headers.get("cookie"));
+
+  if (!user) {
+    return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+  }
+
+  const { password, ...userWithoutPassword } = user;
+  return NextResponse.json(userWithoutPassword);
 }
 
 export async function PATCH(req: Request) {
-  const user = await getUserFromRequest(req);
-  if (!user) return new Response("Unauthorized", { status: 401 });
+  const user = await getUserFromCookieHeader(req.headers.get("cookie"));
+  if (!user) {
+    return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+  }
+
   const body = await req.json();
-  const allowed: any = {};
-  if (body.name !== undefined) allowed.name = body.name;
-  if (body.phone !== undefined) allowed.phone = body.phone;
-  if (body.email !== undefined) allowed.email = body.email;
-  const updated = await prisma.user.update({
+  const data: Record<string, unknown> = {};
+
+  if (typeof body.name === "string") data.name = body.name;
+  if (typeof body.phone === "string") data.phone = body.phone;
+  if (typeof body.email === "string") data.email = body.email;
+  if (typeof body.birthday === "string") data.birthday = body.birthday;
+
+  const updatedUser = await prisma.user.update({
     where: { id: user.id },
-    data: allowed,
+    data,
   });
-  const { id, email, name, phone, bonusBalance, totalSpent } = updated;
-  return NextResponse.json({
-    id,
-    email,
-    name,
-    phone,
-    bonusBalance,
-    totalSpent,
-  });
+
+  const { password: _password, ...userWithoutPassword } = updatedUser;
+  return NextResponse.json(userWithoutPassword);
 }

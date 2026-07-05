@@ -6,6 +6,10 @@ import { ColorMixingCta } from "@/components/home/colormixing-cta";
 import { LoyaltyBlock } from "@/components/home/loyalty-block";
 import ReviewsBlock from "@/components/home/reviews-block";
 
+/**
+ * Главная страница платформы
+ * Загружает данные с сервера через API в компонентах
+ */
 export default function HomePage() {
   return (
     <>

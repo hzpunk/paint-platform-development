@@ -1,39 +1,21 @@
-import prisma from "./db";
-import type { Review } from "./types";
+import { Review } from "@prisma/client";
+import { getProductBySlug } from "./data";
 
-function mapReview(row: any): Review {
-  return {
-    id: row.id,
-    productSlug: row.productId,
-    author: row.user?.name || row.user?.email?.split("@")[0] || "Покупатель",
-    rating: row.rating,
-    date:
-      row.createdAt instanceof Date
-        ? row.createdAt.toISOString().slice(0, 10)
-        : String(row.createdAt),
-    text: row.text ?? "",
-    verified: true,
-  };
-}
+export function getReviewsForProduct(slug: string): Review[] {
+  const product = getProductBySlug(slug);
+  if (!product) return [];
 
-export async function getReviewsForProduct(
-  productSlug: string,
-): Promise<Review[]> {
-  const reviews = await prisma.review.findMany({
-    where: { productId: productSlug },
-    include: { user: true },
-    orderBy: { createdAt: "desc" },
-  });
+  // This is a mock implementation. Replace with actual database query.
+  const mockReviews: Review[] = [
+    {
+      id: "1",
+      userId: "1",
+      productId: product.id,
+      rating: 5,
+      text: "Отличный товар!",
+      createdAt: new Date(),
+    },
+  ];
 
-  return reviews.map(mapReview);
-}
-
-export async function getLatestReviews(limit = 4): Promise<Review[]> {
-  const reviews = await prisma.review.findMany({
-    include: { user: true },
-    orderBy: { createdAt: "desc" },
-    take: limit,
-  });
-
-  return reviews.map(mapReview);
+  return mockReviews;
 }

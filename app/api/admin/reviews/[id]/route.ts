@@ -2,12 +2,13 @@ import { NextResponse } from "next/server";
 import prisma from "@/lib/db";
 import { requireAdmin } from "@/lib/serverAuth";
 
-export async function GET(_: Request, { params }: { params: { id: string } }) {
+export async function GET(_: Request, { params }: { params: Promise<{ id: string }> }) {
+  const { id } = await params;
   const notAllowed = await requireAdmin(_);
   if (notAllowed) return notAllowed;
 
   const review = await prisma.review.findUnique({
-    where: { id: params.id },
+    where: { id },
     include: { user: true },
   });
   if (!review) return new Response("Not found", { status: 404 });
@@ -17,8 +18,9 @@ export async function GET(_: Request, { params }: { params: { id: string } }) {
 
 export async function PATCH(
   req: Request,
-  { params }: { params: { id: string } },
+  { params }: { params: Promise<{ id: string }> },
 ) {
+  const { id } = await params;
   const notAllowed = await requireAdmin(req);
   if (notAllowed) return notAllowed;
 
@@ -32,7 +34,7 @@ export async function PATCH(
   }
 
   const updated = await prisma.review.update({
-    where: { id: params.id },
+    where: { id },
     data: allowed,
   });
   return NextResponse.json(updated);
@@ -40,11 +42,12 @@ export async function PATCH(
 
 export async function DELETE(
   _: Request,
-  { params }: { params: { id: string } },
+  { params }: { params: Promise<{ id: string }> },
 ) {
+  const { id } = await params;
   const notAllowed = await requireAdmin(_);
   if (notAllowed) return notAllowed;
 
-  await prisma.review.delete({ where: { id: params.id } });
+  await prisma.review.delete({ where: { id } });
   return new Response(null, { status: 204 });
 }

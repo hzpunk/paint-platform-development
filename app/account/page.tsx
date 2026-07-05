@@ -1,8 +1,9 @@
-"use client";
+'use client';
 
 export const dynamic = "force-dynamic";
 
 import { useState, useEffect } from "react";
+import Link from "next/link";
 import {
   Package,
   Star,
@@ -17,18 +18,20 @@ import {
   Truck,
   Archive,
   XCircle,
+  LogOut,
+  UserCog,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Badge } from "@/components/ui/badge";
-import { loyaltyTiers, products } from "@/lib/data";
+import { loyaltyTiers } from "@/lib/data";
 import { useAuth } from "@/components/auth/auth-provider";
 import { useFavorites } from "@/components/favorites/favorites-provider";
 import { formatPrice, formatDate, pluralize } from "@/lib/format";
 import { ProductCard } from "@/components/product/product-card";
 import { cn } from "@/lib/utils";
-import type { OrderStatus } from "@/lib/types";
+import type { OrderStatus, Product } from "@/lib/types";
 import { toast } from "sonner";
 
 const STATUS_CONFIG: Record<
@@ -54,7 +57,7 @@ type Section =
   | "profile"
   | "reviews";
 
-const MENU: { key: Section; label: string; icon: React.ElementType }[] = [
+const MENU: { key: Section | "logout" | "admin"; label: string; icon: React.ElementType; href?: string }[] = [
   { key: "orders", label: "Мои заказы", icon: Package },
   { key: "bonus", label: "Бонусы", icon: Star },
   { key: "referral", label: "Реферальная программа", icon: Gift },
@@ -72,7 +75,14 @@ export default function AccountPage() {
   const [pphone, setPphone] = useState("");
   const [pemail, setPemail] = useState("");
   const [pbday, setPbday] = useState("");
-  const { user } = useAuth();
+  const { user, logout } = useAuth();
+  const [allProducts, setAllProducts] = useState<Product[]>([]);
+
+  const displayMenu = [
+    ...MENU,
+    ...(user?.isAdmin ? [{ key: "admin", label: "Панель администратора", icon: UserCog, href: "/admin" }] : []),
+    ...(user ? [{ key: "logout", label: "Выйти", icon: LogOut }] : []),
+  ];
 
   const USER = profile ??
     user ?? {
@@ -94,15 +104,33 @@ export default function AccountPage() {
             loyaltyTiers[loyaltyTiers.indexOf(t) + 1].threshold),
     ) ?? loyaltyTiers[0];
   const { favorites } = useFavorites();
-  const favoriteProducts = products.filter((p) => favorites.includes(p.id));
+  const favoriteProducts = allProducts.filter((p) => favorites.includes(p.id));
   const [copiedCode, setCopiedCode] = useState(false);
 
   // load orders for the demo user
   useEffect(() => {
     fetch("/api/orders")
-      .then((r) => r.json())
-      .then((data) => setOrders(data))
+      .then(async (res) => {
+        if (res.ok) {
+          const data = await res.json();
+          if (Array.isArray(data)) {
+            setOrders(data);
+          } else {
+            setOrders([]);
+          }
+        } else {
+          setOrders([]);
+        }
+      })
       .catch(() => setOrders([]));
+  }, []);
+
+  // load all products for favorites
+  useEffect(() => {
+    fetch("/api/products?limit=100") // Assuming the API supports a limit
+      .then((r) => r.json())
+      .then((data) => setAllProducts(data.products || []))
+      .catch(() => setAllProducts([]));
   }, []);
 
   useEffect(() => {
@@ -175,21 +203,37 @@ export default function AccountPage() {
 
           {/* Меню */}
           <nav className="flex flex-col gap-1">
-            {MENU.map(({ key, label, icon: Icon }) => (
-              <button
-                key={key}
-                onClick={() => setSection(key)}
-                className={cn(
-                  "flex items-center gap-3 rounded-md px-3 py-2.5 text-sm font-medium transition-colors text-left",
-                  section === key
-                    ? "bg-primary/10 text-primary"
-                    : "hover:bg-muted text-foreground/70",
-                )}
-              >
-                <Icon className="size-4 shrink-0" />
-                {label}
-              </button>
-            ))}
+            {displayMenu.map(({ key, label, icon: Icon, href }) => {
+              const buttonClass = cn(
+                "flex items-center gap-3 rounded-md px-3 py-2.5 text-sm font-medium transition-colors text-left",
+                section === key
+                  ? "bg-primary/10 text-primary"
+                  : "hover:bg-muted text-foreground/70",
+              );
+
+              if (key === "logout") {
+                return (
+                  <button key={key} onClick={logout} className={buttonClass}>
+                    <Icon className="size-4 shrink-0" />
+                    {label}
+                  </button>
+                );
+              } else if (href) {
+                return (
+                  <Link key={key} href={href} className={buttonClass}>
+                    <Icon className="size-4 shrink-0" />
+                    {label}
+                  </Link>
+                );
+              } else {
+                return (
+                  <button key={key} onClick={() => setSection(key as Section)} className={buttonClass}>
+                    <Icon className="size-4 shrink-0" />
+                    {label}
+                  </button>
+                );
+              }
+            })}
           </nav>
         </aside>
 
@@ -200,7 +244,7 @@ export default function AccountPage() {
             <div className="flex flex-col gap-4">
               <h2 className="font-heading font-bold text-xl">Мои заказы</h2>
               {orders.map((order) => {
-                const cfg = STATUS_CONFIG[order.status as any];
+                const cfg = STATUS_CONFIG[order.status as OrderStatus];
                 const StatusIcon = cfg.icon;
                 return (
                   <div

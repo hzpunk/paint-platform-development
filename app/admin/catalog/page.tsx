@@ -1,15 +1,9 @@
-import { AdminProductsTable } from "@/components/admin/products-table";
-import prisma from "@/lib/db";
+import { ProductsTable } from "@/components/admin/products-table";
 
-export default async function AdminCatalogPage() {
-  const products = await prisma.product.findMany({
-    include: { category: true, brand: true },
-    orderBy: { createdAt: "desc" },
-  });
-
+export default function AdminCatalogPage() {
   return (
-    <div>
-      <AdminProductsTable initialProducts={products} />
+    <div className="p-6">
+      <ProductsTable />
     </div>
   );
 }

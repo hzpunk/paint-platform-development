@@ -1,109 +1,81 @@
 import jwt from "jsonwebtoken";
 import bcrypt from "bcryptjs";
+import { cookies } from "next/headers";
 import prisma from "./db";
 
-const JWT_SECRET = process.env.JWT_SECRET || "dev-secret";
-const COOKIE_NAME = "kraska_token";
+const SECRET = process.env.JWT_SECRET || "your-super-secret-key";
+const COOKIE_NAME = "auth_token";
 
-export function hashPassword(password: string) {
-  return bcrypt.hashSync(password, 10);
+export async function hashPassword(password: string) {
+  return bcrypt.hash(password, 10);
 }
 
-export function verifyPassword(password: string, hash: string) {
-  return bcrypt.compareSync(password, hash);
+export async function verifyPassword(password: string, hash: string) {
+  return bcrypt.compare(password, hash);
 }
 
-export function signToken(payload: object) {
-  return jwt.sign(payload, JWT_SECRET, { expiresIn: "7d" });
+export async function createToken(userId: string, role: string) {
+  return jwt.sign({ userId, role }, SECRET, { expiresIn: "7d" });
 }
 
-export function verifyToken(token: string) {
+export async function verifyToken(token: string) {
   try {
-    return jwt.verify(token, JWT_SECRET) as any;
+    return jwt.verify(token, SECRET);
   } catch (e) {
     return null;
   }
 }
 
-function getUserFromToken(token?: string | null) {
-  if (!token) return null;
-  const data = verifyToken(decodeURIComponent(token));
-  if (!data || !data.id) return null;
-  return prisma.user.findUnique({ where: { id: data.id } });
+export async function setAuthCookie(token: string) {
+  const cookieStore = await cookies();
+  cookieStore.set(COOKIE_NAME, token, {
+    httpOnly: true,
+    secure: process.env.NODE_ENV === "production",
+    sameSite: "lax",
+    path: "/",
+    maxAge: 60 * 60 * 24 * 7, // 1 week
+  });
 }
 
-export async function getUserFromRequest(req: Request) {
-  const cookie = req.headers.get("cookie") || "";
-  return getUserFromCookieHeader(cookie);
+export async function clearAuthCookie() {
+  const cookieStore = await cookies();
+  cookieStore.set(COOKIE_NAME, "", {
+    httpOnly: true,
+    secure: process.env.NODE_ENV === "production",
+    sameSite: "lax",
+    path: "/",
+    expires: new Date(0),
+  });
+  return new Response(JSON.stringify({ message: "Logged out" }), { status: 200, headers: { "Content-Type": "application/json" } });
 }
 
-export async function getUserFromCookieHeader(cookieHeader?: string | null) {
-  const match = (cookieHeader || "")
+export async function getUserFromCookieHeader(cookieHeader: string | null) {
+  if (!cookieHeader) return null;
+
+  const cookie = cookieHeader
     .split(";")
-    .map((s) => s.trim())
-    .find((s) => s.startsWith(COOKIE_NAME + "="));
-  if (!match) return null;
-  const token = match.split("=").slice(1).join("=");
-  return getUserFromToken(token);
+    .find((c) => c.trim().startsWith(`${COOKIE_NAME}=`));
+
+  if (!cookie) return null;
+
+  const token = cookie.split("=")[1];
+  const decoded = await verifyToken(token);
+
+  if (!decoded || typeof decoded !== "object" || !decoded.userId) return null;
+
+  const user = await prisma.user.findUnique({ where: { id: decoded.userId } });
+  return user;
 }
 
-function getCookieToken() {
-  if (typeof window === "undefined") {
-    const cookieStore = cookies();
-    if (cookieStore) {
-      if (typeof cookieStore.get === "function") {
-        return cookieStore.get(COOKIE_NAME)?.value ?? null;
-      }
-      if (typeof cookieStore.getAll === "function") {
-        return (
-          cookieStore.getAll().find((cookie) => cookie.name === COOKIE_NAME)
-            ?.value ?? null
-        );
-      }
+/**
+ * Проверяет авторизацию администратора.
+ * Возвращает null при успехе (авторизация пройдена),
+ * Response 401 при провале — вызывающий код делает: const err = await requireAdmin(req); if (err) return err;
+ */
+export async function requireAdmin(req: Request): Promise<Response | null> {
+    const user = await getUserFromCookieHeader(req.headers.get('cookie'));
+    if (!user || user.role !== 'admin') {
+        return new Response(JSON.stringify({ error: 'Unauthorized' }), { status: 401, headers: { 'Content-Type': 'application/json' } });
     }
     return null;
-  }
-
-  const match = document.cookie
-    .split(";")
-    .map((entry) => entry.trim())
-    .find((entry) => entry.startsWith(`${COOKIE_NAME}=`));
-  return match ? decodeURIComponent(match.split("=").slice(1).join("=")) : null;
-}
-
-export async function getUserFromCookies() {
-  const token = getCookieToken();
-  return getUserFromToken(token);
-}
-
-export async function getUserFromServerCookies() {
-  return null;
-}
-
-export function makeAuthResponse(resBody: any, token: string) {
-  const res = new Response(JSON.stringify(resBody), {
-    status: 200,
-    headers: {
-      "Content-Type": "application/json",
-      "Set-Cookie": `${COOKIE_NAME}=${encodeURIComponent(token)}; Path=/; HttpOnly; SameSite=Lax; Max-Age=${60 * 60 * 24 * 7}`,
-    },
-  });
-  return res;
-}
-
-export function clearAuthCookie() {
-  return new Response(null, {
-    status: 204,
-    headers: {
-      "Set-Cookie": `${COOKIE_NAME}=; Path=/; HttpOnly; SameSite=Lax; Max-Age=0`,
-    },
-  });
-}
-
-export async function requireAdmin(req: Request) {
-  const user = await getUserFromRequest(req);
-  if (!user || user.role !== "admin") {
-    return new Response("Unauthorized", { status: 401 });
-  }
-  return null;
 }

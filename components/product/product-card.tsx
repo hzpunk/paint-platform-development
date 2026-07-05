@@ -1,105 +1,87 @@
 'use client'
 
 import Link from 'next/link'
-import { Heart, Star } from 'lucide-react'
-
+import { Card, CardContent, CardFooter, CardHeader } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
-import { Button } from '@/components/ui/button'
-import { PaintCan } from '@/components/product/paint-can'
-import { AddToCartButton } from '@/components/product/add-to-cart-button'
-import { useFavorites } from '@/components/favorites/favorites-provider'
-import { formatPrice } from '@/lib/format'
+import { Star } from 'lucide-react'
 import type { Product } from '@/lib/types'
-import { cn } from '@/lib/utils'
+import { bonusFor } from '@/lib/data'
+import { AddToCartButton } from './add-to-cart-button'
 
-function badgeVariant(badge: Product['badges'][number]) {
-  switch (badge) {
-    case 'Акция':
-      return 'destructive' as const
-    case 'Новинка':
-      return 'secondary' as const
-    default:
-      return 'default' as const
-  }
+interface ProductCardProps {
+  product: Product
 }
 
-export function ProductCard({ product }: { product: Product }) {
-  const { isFavorite, toggle } = useFavorites()
-  const fav = isFavorite(product.id)
-  const discount =
-    product.oldPrice && product.oldPrice > product.price
-      ? Math.round((1 - product.price / product.oldPrice) * 100)
-      : 0
-  const swatch = product.images[0] ?? product.colors[0]?.hex ?? '#E5E5E0'
+export function ProductCard({ product }: ProductCardProps) {
+  const primaryImage = Array.isArray(product.images) ? product.images[0] : null
+  const firstColor = Array.isArray(product.colors) ? product.colors[0]?.hex : null
+  const bonus = bonusFor(product.price)
+  const brandName = typeof product.brand === 'string' ? product.brand : product.brand?.name || 'Бренд'
+  const isInStock = product.inStock ?? product.stock > 0
 
   return (
-    <article className="group relative flex flex-col overflow-hidden rounded-lg border border-border bg-card transition-shadow hover:shadow-md">
-      <div className="relative flex items-center justify-center bg-muted/40 p-6">
-        <div className="absolute left-3 top-3 z-10 flex flex-col gap-1">
-          {product.badges
-            .filter((b) => b !== 'Колеровка')
-            .map((b) => (
-              <Badge key={b} variant={badgeVariant(b)}>
-                {b}
-              </Badge>
-            ))}
-          {discount > 0 && <Badge variant="destructive">−{discount}%</Badge>}
-        </div>
-        <Button
-          type="button"
-          variant="ghost"
-          size="icon"
-          className="absolute right-2 top-2 z-10 size-9 rounded-full bg-background/70 backdrop-blur hover:bg-background"
-          onClick={() => toggle(product.id)}
-          aria-label={fav ? 'Убрать из избранного' : 'Добавить в избранное'}
-          aria-pressed={fav}
-        >
-          <Heart className={cn('size-4', fav && 'fill-destructive text-destructive')} />
-        </Button>
+    <Card className="group flex h-full flex-col overflow-hidden border-border/60 bg-card shadow-sm transition-all duration-200 hover:-translate-y-1 hover:shadow-md">
+      <CardHeader className="p-0">
         <Link href={`/product/${product.slug}`} className="block">
-          <PaintCan
-            color={swatch}
-            className="h-40 w-32 transition-transform duration-300 group-hover:scale-105"
-          />
-          <span className="sr-only">{product.name}</span>
+          <div className="relative aspect-square overflow-hidden bg-muted/60">
+            {primaryImage ? (
+              <img
+                src={primaryImage}
+                alt={product.name}
+                className="absolute inset-0 h-full w-full object-cover transition-transform duration-300 group-hover:scale-105"
+              />
+            ) : firstColor ? (
+              <div
+                className="absolute inset-0 transition-transform duration-300 group-hover:scale-105"
+                style={{ backgroundColor: firstColor }}
+              />
+            ) : (
+              <div className="absolute inset-0 bg-gradient-to-br from-muted to-muted/70" />
+            )}
+            <div className="absolute inset-0 bg-gradient-to-t from-background/70 via-transparent to-transparent" />
+            <div className="absolute left-2 top-2 flex flex-col gap-1">
+              {product.badges?.map((b: string) => (
+                <Badge key={b} variant={b === 'Хит' ? 'default' : 'secondary'}>
+                  {b}
+                </Badge>
+              ))}
+            </div>
+          </div>
         </Link>
-      </div>
+      </CardHeader>
 
-      <div className="flex flex-1 flex-col gap-2 p-4">
-        <p className="text-xs uppercase tracking-wide text-muted-foreground">{product.brand}</p>
+      <CardContent className="flex flex-1 flex-col gap-3 p-4">
+        <p className="text-[11px] font-medium uppercase tracking-[0.2em] text-muted-foreground">
+          {brandName}
+        </p>
         <Link
           href={`/product/${product.slug}`}
-          className="line-clamp-2 font-medium leading-snug hover:text-primary"
+          className="line-clamp-2 text-base font-semibold leading-tight text-foreground transition-colors hover:text-primary"
         >
           {product.name}
         </Link>
-        <p className="line-clamp-1 text-sm text-muted-foreground">{product.shortSpec}</p>
-
-        <div className="flex items-center gap-1 text-sm">
-          <Star className="size-4 fill-secondary text-secondary" />
-          <span className="font-medium">{product.rating.toFixed(1)}</span>
-          <span className="text-muted-foreground">({product.reviewsCount})</span>
-          {product.colorable && (
-            <span className="ml-auto text-xs text-primary">Колеровка</span>
-          )}
+        <p className="line-clamp-2 text-sm text-muted-foreground">
+          {product.shortSpec || product.description || 'Качественное покрытие для любых задач.'}
+        </p>
+        <div className="mt-auto flex items-center gap-1 pt-1">
+          <Star className="size-4 fill-primary text-primary" />
+          <span className="text-sm font-bold">{product.rating ?? 0}</span>
+          <span className="text-sm text-muted-foreground">({product.reviewsCount ?? 0})</span>
         </div>
+      </CardContent>
 
-        <div className="mt-auto pt-2">
-          <div className="flex items-baseline gap-2">
-            <span className="text-lg font-bold text-foreground">{formatPrice(product.price)}</span>
-            {product.oldPrice && (
-              <span className="text-sm text-muted-foreground line-through">
-                {formatPrice(product.oldPrice)}
-              </span>
-            )}
+      <CardFooter className="flex flex-col items-stretch gap-3 border-t bg-muted/20 p-4 pt-3">
+        <div className="flex items-end justify-between gap-3">
+          <div>
+            <p className="text-lg font-bold">{product.price.toLocaleString('ru-RU')} ₽</p>
+            <p className="text-xs text-primary">+ {bonus} баллов</p>
           </div>
-          <span className="text-xs text-muted-foreground">
-            от {product.packaging[0]?.volume} л
-          </span>
+          <div className="rounded-full bg-primary/10 px-2.5 py-1 text-xs font-medium text-primary">
+            {isInStock ? 'В наличии' : 'Под заказ'}
+          </div>
         </div>
-
-        <AddToCartButton product={product} className="mt-2 w-full" />
-      </div>
-    </article>
+        <AddToCartButton product={product} />
+      </CardFooter>
+    </Card>
   )
 }

@@ -1,29 +1,30 @@
-[x] Проанализировать tz_admin_panel.md
-[x] Проанализировать схему Prisma
-[x] Проанализировать существующие маршруты API
-[x] Проанализировать компоненты внешнего интерфейса
-[x] Создать подробный план доработок
-[x] Доработать модель User
-[x] Доработать модель Order
-[x] Доработать модель OrderItem
-[x] Создать новые модели
-[x] Обновить PLAN.txt с новыми задачами по админке
-[x] Доработать Sidebar с новыми пунктами: marketing, users, finance, feedback, hzcompany, info, documents
-[x] Обновить дашборд (/admin) с быстрыми метриками и топ 10 товаров
-[x] Создать/проверить страницу /admin/login
-[x] Создать страницу /admin/marketing
-[x] Создать страницу /admin/users
-[x] Создать страницу /admin/finance
-[x] Создать страницу /admin/feedback
-[x] Создать страницу /admin/hzcompany
-[x] Создать страницу /admin/info
-[x] Создать страницу /admin/documents
-[x] Создать страницу /hzcompany
-[x] Добавить необходимые модели в Prisma (если не хватает)
-[x] Создать необходимые API маршруты (начато)
-[x] Обновить API routes для полноценного CRUD
-[x] Обновить UI админки для интерактивного управления (forms, actions)
-[x] Убрать моковые данные из страниц
-[x] Добавить Client компоненты для интерактивности
-[x] Добавить API для управления заказами
-[x] Добавить API для управления пользователями
+КраскаПроф — План исправлений (второй проход)
+==============================
+Дата: 2026-07-05
+Статус: [ ] — pending, [x] — done
+
+КРИТИЧЕСКИЕ (блокируют работу):
+[x] 1. requireAdmin() инвертирован — возвращает user при успехе, но API проверяют "if (result) return result" — никто не может зайти в админку
+[x] 2. clearAuthCookie() ничего не возвращает — logout всегда 500
+[x] 3. adminOrders.ts -> prisma.auditLog не существует (AuditEntry)
+[x] 4. Favorites API: prisma.product.where({ users: ... }) — связи users нет на Product
+[x] 5. Reviews POST: hardcoded userId='temp-user-id', нет авторизации
+[x] 6. AuthProvider: полная моковость — localStorage, не ходит в API
+[x] 7. Catalog: useState(() => fetch(...)) вместо useEffect — fetch не вызывается
+[x] 8. Search: импортирует моковые { products } из lib/data.ts вместо API
+
+СРЕДНИЕ:
+[x] 9. ReviewsBlock: review.author — поля нет (review.user?.name)
+[x] 10. ProductPageClient: r.author, r.date — нет на Review из Prisma
+[x] 11. Account: PATCH /api/me не существует
+[x] 12. Admin users POST: пароль без хеширования, PATCH: body напрямую в data
+[x] 13. Admin customers GET: возвращает пароли
+[x] 14. ProductCard: brand ожидает slug, API возвращает объект
+[x] 15. CartItem тип не определён в lib/types.ts
+[x] 16. Documents admin: DELETE через ?id= вместо /api/admin/documents/[id]
+[x] 17. Finance admin: POST/DELETE на /api/admin/finance, но API только GET
+[x] 18. Product form: Select value привязан к slug вместо id
+[x] 19. admin/orders/[id]: params не awaitится (Next.js 16)
+
+ТИПЫ:
+[x] 20. Добавить CartItem в lib/types.ts

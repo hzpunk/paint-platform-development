@@ -39,7 +39,7 @@ export function AdminDocumentsTable({ initialDocuments }: { initialDocuments: Do
     if (!confirm('Удалить документ?')) return;
     setLoadingId(id);
     try {
-      const res = await fetch(`/api/admin/documents?id=${encodeURIComponent(id)}`, {
+      const res = await fetch(`/api/admin/documents/${encodeURIComponent(id)}`, {
         method: 'DELETE',
       });
       if (!res.ok) throw new Error('Ошибка');

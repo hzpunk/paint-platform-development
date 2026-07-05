@@ -8,6 +8,17 @@ export async function GET(req: Request) {
 
   const customers = await prisma.user.findMany({
     orderBy: { createdAt: "desc" },
+    select: {
+      id: true,
+      email: true,
+      name: true,
+      role: true,
+      phone: true,
+      bonusBalance: true,
+      totalSpent: true,
+      createdAt: true,
+      updatedAt: true,
+    },
   });
   return NextResponse.json(customers);
 }

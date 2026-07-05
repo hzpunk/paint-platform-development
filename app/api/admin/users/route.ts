@@ -1,25 +1,61 @@
-import prisma from "@/lib/db";
 import { NextResponse } from "next/server";
-import { requireAdmin } from "@/lib/serverAuth";
+import prisma from "@/lib/db";
+import { hashPassword, requireAdmin } from "@/lib/serverAuth";
 
+// GET all users
 export async function GET(req: Request) {
-  const notAllowed = await requireAdmin(req);
-  if (notAllowed) return notAllowed;
+  const notAuthorized = await requireAdmin(req);
+  if (notAuthorized) return notAuthorized;
+
   const users = await prisma.user.findMany({
     orderBy: { createdAt: "desc" },
+    select: {
+      id: true,
+      email: true,
+      name: true,
+      role: true,
+      phone: true,
+      bonusBalance: true,
+      totalSpent: true,
+      createdAt: true,
+      updatedAt: true,
+    },
   });
   return NextResponse.json(users);
 }
 
-export async function PATCH(req: Request) {
-  const notAllowed = await requireAdmin(req);
-  if (notAllowed) return notAllowed;
+// POST new user (optional, if creation from admin is needed)
+export async function POST(req: Request) {
+  const notAuthorized = await requireAdmin(req);
+  if (notAuthorized) return notAuthorized;
+
   const body = await req.json();
-  const { id, role, name, phone } = body;
-  
-  const user = await prisma.user.update({
-    where: { id },
-    data: { role, name, phone },
+  const { email, name, password, role } = body;
+
+  if (!email || !password) {
+    return NextResponse.json({ error: "email and password are required" }, { status: 400 });
+  }
+
+  const hashedPassword = await hashPassword(password);
+  const user = await prisma.user.create({
+    data: {
+      email,
+      name,
+      password: hashedPassword,
+      role,
+    },
+    select: {
+      id: true,
+      email: true,
+      name: true,
+      role: true,
+      phone: true,
+      bonusBalance: true,
+      totalSpent: true,
+      createdAt: true,
+      updatedAt: true,
+    },
   });
+
   return NextResponse.json(user);
 }

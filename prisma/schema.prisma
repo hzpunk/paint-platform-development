@@ -90,34 +90,48 @@ model Review {
 }
 
 model Product {
-  id          String   @id @default(uuid())
-  name        String
-  slug        String   @unique
-  description String?
-  price       Float
-  stock       Int
-  images      String[]
-  categoryId  String
-  category    Category @relation(fields: [categoryId], references: [id])
-  brandId     String
-  brand       Brand    @relation(fields: [brandId], references: [id])
-  reviews     Review[]
-  createdAt   DateTime @default(now())
-  updatedAt   DateTime @updatedAt
+  id              String       @id @default(uuid())
+  name            String
+  slug            String       @unique
+  description     String?
+  price           Float
+  oldPrice        Float?
+  stock           Int
+  images          String[]
+  categoryId      String
+  category        Category     @relation(fields: [categoryId], references: [id])
+  brandId         String
+  brand           Brand        @relation(fields: [brandId], references: [id])
+  type            String?
+  surfaces        String[]
+  badges          String[]
+  rating          Float        @default(0)
+  reviewsCount    Int          @default(0)
+  colorable       Boolean      @default(false)
+  shortSpec       String?
+  specs           Json? // Keep as Json, ensure seed.ts handles it
+  application     String?
+  packaging       Json? // Keep as Json, ensure seed.ts handles it
+  colors          Json? // Keep as Json, ensure seed.ts handles it
+  reviews         Review[]
+  createdAt       DateTime     @default(now())
+  updatedAt       DateTime     @updatedAt
 }
 
 model Category {
-  id        String    @id @default(uuid())
-  name      String
-  slug      String    @unique
-  products  Product[]
+  id          String       @id @default(uuid())
+  name        String
+  slug        String       @unique
+  icon        String?
+  description String?
+  products    Product[]
 }
 
 model Brand {
-  id        String    @id @default(uuid())
-  name      String
-  slug      String    @unique
-  products  Product[]
+  id       String    @id @default(uuid())
+  name     String
+  slug     String    @unique
+  products Product[]
 }
 
 model Attribute {

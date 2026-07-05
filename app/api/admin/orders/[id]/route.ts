@@ -4,51 +4,40 @@ import {
   updateOrderStatus,
   getAuditForOrder,
 } from "@/lib/adminOrders";
-import { requireAdmin } from "@/lib/serverAuth";
 
-export async function GET(_: Request, { params }: { params: Promise<{ id: string }> }) {
-  const { id } = await params;
-  const notAllowed = await requireAdmin(_);
-  if (notAllowed) return notAllowed;
-  const order = await getOrder(id);
-  if (!order) return new Response("Not found", { status: 404 });
-  return NextResponse.json(order);
-}
-
-export async function PATCH(
-  req: Request,
-  { params }: { params: Promise<{ id: string }> },
+export async function GET(
+  _: Request,
+  { params }: { params: { id: string } }
 ) {
-  const { id } = await params;
-  const notAllowed = await requireAdmin(req);
-  if (notAllowed) return notAllowed;
-  const body = await req.json();
-  const { status, actor } = body;
-  if (!status) return new Response("Missing status", { status: 400 });
   try {
-    const updated = await updateOrderStatus(
-      id,
-      status,
-      actor ?? "admin",
+    const order = await getOrder(params.id);
+    if (!order) {
+      return NextResponse.json({ error: "Order not found" }, { status: 404 });
+    }
+    const audit = await getAuditForOrder(params.id);
+    return NextResponse.json({ ...order, audit });
+  } catch (error) {
+    console.error(`Failed to fetch order ${params.id}:`, error);
+    return NextResponse.json(
+      { error: `Failed to fetch order ${params.id}` },
+      { status: 500 }
     );
-    return NextResponse.json(updated);
-  } catch (e: any) {
-    return new Response(e.message || "Error", { status: 500 });
   }
 }
 
-export async function POST(
+export async function PUT(
   req: Request,
-  { params }: { params: Promise<{ id: string }> },
+  { params }: { params: { id: string } }
 ) {
-  const { id } = await params;
-  const notAllowed = await requireAdmin(req);
-  if (notAllowed) return notAllowed;
-  // optional: return audit for order when POST /api/admin/orders/:id with action=audit
-  const body = await req.json();
-  if (body?.action === "audit") {
-    const audit = await getAuditForOrder(id);
-    return NextResponse.json(audit);
+  try {
+    const { status } = await req.json();
+    const updatedOrder = await updateOrderStatus(params.id, status);
+    return NextResponse.json(updatedOrder);
+  } catch (error) {
+    console.error(`Failed to update order ${params.id}:`, error);
+    return NextResponse.json(
+      { error: `Failed to update order ${params.id}` },
+      { status: 500 }
+    );
   }
-  return new Response("Not supported", { status: 400 });
 }

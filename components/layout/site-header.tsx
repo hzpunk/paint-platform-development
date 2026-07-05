@@ -24,6 +24,7 @@ import {
 } from "@/components/ui/sheet";
 import { useCart } from "@/components/cart/cart-provider";
 import { useFavorites } from "@/components/favorites/favorites-provider";
+import { useAuth } from "@/components/auth/auth-provider";
 import { categories } from "@/lib/data";
 
 const NAV = [
@@ -35,6 +36,7 @@ const NAV = [
 export function SiteHeader() {
   const { itemCount } = useCart();
   const { favorites } = useFavorites();
+  const { user } = useAuth();
   const router = useRouter();
   const [query, setQuery] = useState("");
   const [open, setOpen] = useState(false);
@@ -99,7 +101,7 @@ export function SiteHeader() {
               <span className="px-3 py-1 text-xs font-medium text-muted-foreground">
                 Категории
               </span>
-              {categories.map((c) => (
+              {categories.map((c: any) => (
                 <Link
                   key={c.slug}
                   href={`/catalog?category=${c.slug}`}
@@ -154,53 +156,66 @@ export function SiteHeader() {
 
         {/* Действия */}
         <div className="flex items-center gap-1 sm:ml-0 ml-auto">
-          <Button
-            variant="ghost"
-            size="icon"
-            className="sm:hidden"
-            aria-label="Поиск"
-            render={<Link href="/search" />}
-          >
-            <Search className="size-5" />
-          </Button>
-          <Button
-            variant="ghost"
-            size="icon"
-            className="relative"
-            aria-label={
-              mounted ? `Избранное, товаров: ${favorites.length}` : "Избранное"
-            }
-            render={<Link href="/account?tab=favorites" />}
-          >
-            <Heart className="size-5 text-foreground" />
-            {mounted && favorites.length > 0 && (
-              <Badge className="absolute -top-1 -right-1 size-5 rounded-full bg-accent p-0 text-[11px] text-accent-foreground">
-                {favorites.length}
-              </Badge>
-            )}
-          </Button>
-          <Button
-            variant="ghost"
-            size="icon"
-            aria-label="Личный кабинет"
-            render={<Link href="/account" />}
-          >
-            <User className="size-5" />
-          </Button>
-          <Button
-            variant="ghost"
-            size="icon"
-            className="relative"
-            aria-label={`Корзина, товаров: ${itemCount}`}
-            render={<Link href="/cart" />}
-          >
-            <ShoppingCart className="size-5" />
-            {itemCount > 0 && (
-              <Badge className="absolute -top-1 -right-1 size-5 rounded-full bg-accent p-0 text-[11px] text-accent-foreground">
-                {itemCount > 99 ? "99+" : itemCount}
-              </Badge>
-            )}
-          </Button>
+          {!user ? (
+            <>
+              <Button variant="ghost" size="sm" render={<Link href="/login" />}>
+                Войти
+              </Button>
+              <Button variant="ghost" size="sm" render={<Link href="/register" />}>
+                Зарегистрироваться
+              </Button>
+            </>
+          ) : (
+            <>
+              <Button
+                variant="ghost"
+                size="icon"
+                className="sm:hidden"
+                aria-label="Поиск"
+                render={<Link href="/search" />}
+              >
+                <Search className="size-5" />
+              </Button>
+              <Button
+                variant="ghost"
+                size="icon"
+                className="relative"
+                aria-label={
+                  mounted ? `Избранное, товаров: ${favorites.length}` : "Избранное"
+                }
+                render={<Link href="/account?tab=favorites" />}
+              >
+                <Heart className="size-5 text-foreground" />
+                {mounted && favorites.length > 0 && (
+                  <Badge className="absolute -top-1 -right-1 size-5 rounded-full bg-accent p-0 text-[11px] text-accent-foreground">
+                    {favorites.length}
+                  </Badge>
+                )}
+              </Button>
+              <Button
+                variant="ghost"
+                size="icon"
+                aria-label="Личный кабинет"
+                render={<Link href="/account" />}
+              >
+                <User className="size-5" />
+              </Button>
+              <Button
+                variant="ghost"
+                size="icon"
+                className="relative"
+                aria-label={`Корзина, товаров: ${itemCount}`}
+                render={<Link href="/cart" />}
+              >
+                <ShoppingCart className="size-5" />
+                {itemCount > 0 && (
+                  <Badge className="absolute -top-1 -right-1 size-5 rounded-full bg-accent p-0 text-[11px] text-accent-foreground">
+                    {itemCount > 99 ? "99+" : itemCount}
+                  </Badge>
+                )}
+              </Button>
+            </>
+          )}
         </div>
       </div>
     </header>

@@ -1,19 +1,12 @@
 'use client'
 
-import { useState, useMemo, Suspense } from 'react'
+import { useState, useMemo, Suspense, useEffect } from 'react'
 import { SlidersHorizontal, X, ChevronDown } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Checkbox } from '@/components/ui/checkbox'
 import { Label } from '@/components/ui/label'
 import { Slider } from '@/components/ui/slider'
 import { ProductCard } from '@/components/product/product-card'
-import {
-  products,
-  categories,
-  brands,
-  surfaces,
-  paintTypes,
-} from '@/lib/data'
 import type { PaintType } from '@/lib/types'
 import {
   Sheet,
@@ -48,6 +41,30 @@ function CatalogContent() {
   const [onlyInStock, setOnlyInStock] = useState(false)
   const [sort, setSort] = useState('popular')
   const [mobileFiltersOpen, setMobileFiltersOpen] = useState(false)
+  const [products, setProducts] = useState<any[]>([])
+  const [loading, setLoading] = useState(true)
+
+  // Загрузка продуктов с API
+  useEffect(() => {
+    let mounted = true
+
+    fetch('/api/products')
+      .then((res) => res.json())
+      .then((data) => {
+        if (!mounted) return
+        setProducts(data.products || [])
+        setLoading(false)
+      })
+      .catch(() => {
+        if (!mounted) return
+        setProducts([])
+        setLoading(false)
+      })
+
+    return () => {
+      mounted = false
+    }
+  }, [])
 
   function toggle<T>(arr: T[], item: T, set: (v: T[]) => void) {
     set(arr.includes(item) ? arr.filter((x) => x !== item) : [...arr, item])
@@ -57,15 +74,15 @@ function CatalogContent() {
     let result = [...products]
 
     if (selectedCategories.length)
-      result = result.filter((p) => selectedCategories.includes(p.categorySlug))
+      result = result.filter((p) => selectedCategories.includes(p.category.slug))
     if (selectedBrands.length)
-      result = result.filter((p) => selectedBrands.includes(p.brand.toLowerCase().replace(/\s/g, '-')))
+      result = result.filter((p) => selectedBrands.includes(p.brand.slug))
     if (selectedSurfaces.length)
       result = result.filter((p) => selectedSurfaces.some((s) => p.surfaces.includes(s)))
     if (selectedTypes.length)
       result = result.filter((p) => selectedTypes.includes(p.type))
     if (onlyInStock)
-      result = result.filter((p) => p.inStock)
+      result = result.filter((p) => p.stock > 0)
 
     result = result.filter((p) => p.price >= priceRange[0] && p.price <= priceRange[1])
 
@@ -77,7 +94,7 @@ function CatalogContent() {
     }
 
     return result
-  }, [selectedCategories, selectedBrands, selectedSurfaces, selectedTypes, priceRange, onlyInStock, sort])
+  }, [products, selectedCategories, selectedBrands, selectedSurfaces, selectedTypes, priceRange, onlyInStock, sort])
 
   const hasFilters =
     selectedCategories.length > 0 ||
@@ -101,33 +118,53 @@ function CatalogContent() {
     <aside className="flex flex-col gap-6">
       {/* Категория */}
       <FilterGroup title="Категория">
-        {categories.map((c) => (
-          <CheckItem
-            key={c.slug}
-            id={`cat-${c.slug}`}
-            label={c.name}
-            checked={selectedCategories.includes(c.slug)}
-            onChange={() => toggle(selectedCategories, c.slug, setSelectedCategories)}
-          />
-        ))}
+        {['interior', 'facade', 'primer', 'enamel', 'anticor', 'special'].map((slug) => {
+          const names = {
+            interior: 'Интерьерные краски',
+            facade: 'Фасадные краски',
+            primer: 'Грунтовки',
+            enamel: 'Эмали и лаки',
+            anticor: 'Антикоррозийные',
+            special: 'Спецсоставы'
+          }
+          return (
+            <CheckItem
+              key={slug}
+              id={`cat-${slug}`}
+              label={names[slug as keyof typeof names]}
+              checked={selectedCategories.includes(slug)}
+              onChange={() => toggle(selectedCategories, slug, setSelectedCategories)}
+            />
+          )
+        })}
       </FilterGroup>
 
       {/* Бренд */}
       <FilterGroup title="Бренд">
-        {brands.map((b) => (
-          <CheckItem
-            key={b.slug}
-            id={`brand-${b.slug}`}
-            label={b.name}
-            checked={selectedBrands.includes(b.slug)}
-            onChange={() => toggle(selectedBrands, b.slug, setSelectedBrands)}
-          />
-        ))}
+        {['tikkurila', 'dulux', 'caparol', 'tex', 'lakra', 'olki'].map((slug) => {
+          const names = {
+            tikkurila: 'Tikkurila',
+            dulux: 'Dulux',
+            caparol: 'Caparol',
+            tex: 'ТЕКС',
+            lakra: 'Lakra',
+            olki: 'Ольки'
+          }
+          return (
+            <CheckItem
+              key={slug}
+              id={`brand-${slug}`}
+              label={names[slug as keyof typeof names]}
+              checked={selectedBrands.includes(slug)}
+              onChange={() => toggle(selectedBrands, slug, setSelectedBrands)}
+            />
+          )
+        })}
       </FilterGroup>
 
       {/* Поверхность */}
       <FilterGroup title="Поверхность">
-        {surfaces.map((s) => (
+        {['Стены', 'Потолок', 'Дерево', 'Металл', 'Бетон', 'Кирпич', 'Штукатурка'].map((s) => (
           <CheckItem
             key={s}
             id={`surf-${s}`}
@@ -140,13 +177,13 @@ function CatalogContent() {
 
       {/* Тип */}
       <FilterGroup title="Тип краски">
-        {paintTypes.map((t) => (
+        {['водоэмульсионная', 'алкидная', 'акриловая', 'эпоксидная'].map((t) => (
           <CheckItem
             key={t}
             id={`type-${t}`}
             label={t.charAt(0).toUpperCase() + t.slice(1)}
-            checked={selectedTypes.includes(t)}
-            onChange={() => toggle(selectedTypes, t, setSelectedTypes)}
+            checked={selectedTypes.includes(t as PaintType)}
+            onChange={() => toggle(selectedTypes, t as PaintType, setSelectedTypes)}
           />
         ))}
       </FilterGroup>
@@ -182,6 +219,22 @@ function CatalogContent() {
       )}
     </aside>
   )
+
+  if (loading) {
+    return (
+      <div className="mx-auto max-w-[1280px] px-4 py-8 md:px-6">
+        <div className="mb-6">
+          <h1 className="font-heading text-2xl font-bold md:text-3xl">Каталог красок и ЛКМ</h1>
+          <p className="mt-1 text-muted-foreground">Загрузка...</p>
+        </div>
+        <div className="grid gap-4 grid-cols-1 sm:grid-cols-2 xl:grid-cols-3">
+          {[...Array(6)].map((_, i) => (
+            <div key={i} className="h-64 bg-muted animate-pulse rounded-lg" />
+          ))}
+        </div>
+      </div>
+    )
+  }
 
   return (
     <div className="mx-auto max-w-[1280px] px-4 py-8 md:px-6">

@@ -1,34 +1,62 @@
 import { NextResponse } from "next/server";
 import prisma from "@/lib/db";
 import { requireAdmin } from "@/lib/serverAuth";
+import { ProductSchema } from "@/lib/schemas";
 
 export async function GET(req: Request) {
-  const products = await prisma.product.findMany({
-    include: { category: true, brand: true },
-    orderBy: { createdAt: "desc" },
-  });
-  return NextResponse.json(products);
+  try {
+    const products = await prisma.product.findMany({
+      include: { category: true, brand: true },
+      orderBy: { createdAt: "desc" },
+    });
+    return NextResponse.json(products);
+  } catch (error) {
+    console.error("Ошибка при получении товаров:", error);
+    return NextResponse.json(
+      { error: "Внутренняя ошибка сервера" },
+      { status: 500 },
+    );
+  }
 }
 
 export async function POST(req: Request) {
-  const notAuthorized = await requireAdmin(req);
-  if (notAuthorized) return notAuthorized;
+  try {
+    const notAuthorized = await requireAdmin(req);
+    if (notAuthorized) return notAuthorized;
 
-  const body = await req.json();
-  const { name, slug, description, price, stock, images, categoryId, brandId } = body;
+    const body = await req.json();
+    const validation = ProductSchema.safeParse(body);
 
-  const product = await prisma.product.create({
-    data: {
-      name,
-      slug,
-      description,
-      price,
-      stock,
-      images,
-      categoryId,
-      brandId,
-    },
-  });
+    if (!validation.success) {
+      return NextResponse.json(
+        { errors: validation.error.format() },
+        { status: 400 },
+      );
+    }
 
-  return NextResponse.json(product);
+    const { name, slug, description, price, stock, images, categoryId, brandId } =
+      validation.data;
+
+    const product = await prisma.product.create({
+      data: {
+        name,
+        slug,
+        description,
+        price,
+        stock,
+        images,
+        categoryId,
+        brandId,
+      },
+      include: { category: true, brand: true },
+    });
+
+    return NextResponse.json(product);
+  } catch (error) {
+    console.error("Ошибка при создании товара:", error);
+    return NextResponse.json(
+      { error: "Внутренняя ошибка сервера" },
+      { status: 500 },
+    );
+  }
 }

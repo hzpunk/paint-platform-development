@@ -4,6 +4,7 @@ export const dynamic = "force-dynamic";
 
 import { useState } from "react";
 import { useRouter } from "next/navigation";
+import Link from "next/link";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Button } from "@/components/ui/button";
@@ -16,28 +17,26 @@ export default function RegisterPage() {
   const [name, setName] = useState("");
   const [email, setEmail] = useState("");
   const [phone, setPhone] = useState("");
+  const [password, setPassword] = useState("");
   const [loading, setLoading] = useState(false);
 
-  async function handle() {
+  async function handle(e: React.FormEvent) {
+    e.preventDefault();
+    if (!email || !password) {
+      toast.error("Заполните email и пароль");
+      return;
+    }
+    if (password.length < 6) {
+      toast.error("Пароль должен быть не менее 6 символов");
+      return;
+    }
     setLoading(true);
     try {
-      const res = await fetch("/api/auth/register", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ name, email, password: phone, phone }),
-      });
-      if (!res.ok) throw new Error("Registration failed");
-      const data = await res.json();
-      // sync client provider (local)
-      await register({
-        name: data.name ?? name,
-        email: data.email,
-        phone: data.phone ?? phone,
-      });
+      await register({ email, name: name || undefined, phone: phone || undefined, password });
       toast.success("Регистрация завершена");
       router.push("/account");
     } catch (e) {
-      toast.error("Ошибка регистрации");
+      toast.error(e instanceof Error ? e.message : "Ошибка регистрации");
     } finally {
       setLoading(false);
     }
@@ -46,35 +45,58 @@ export default function RegisterPage() {
   return (
     <div className="mx-auto max-w-md px-4 py-12">
       <h1 className="text-2xl font-bold mb-4">Регистрация</h1>
-      <div className="grid gap-3">
+      <form onSubmit={handle} className="grid gap-3">
         <div>
           <Label htmlFor="name">Имя</Label>
           <Input
             id="name"
             value={name}
             onChange={(e) => setName(e.target.value)}
+            autoComplete="name"
           />
         </div>
         <div>
           <Label htmlFor="email">Email</Label>
           <Input
             id="email"
+            type="email"
             value={email}
             onChange={(e) => setEmail(e.target.value)}
+            autoComplete="email"
+            required
           />
         </div>
         <div>
           <Label htmlFor="phone">Телефон</Label>
           <Input
             id="phone"
+            type="tel"
             value={phone}
             onChange={(e) => setPhone(e.target.value)}
+            autoComplete="tel"
           />
         </div>
-        <Button onClick={handle} disabled={loading} size="lg">
+        <div>
+          <Label htmlFor="password">Пароль</Label>
+          <Input
+            id="password"
+            type="password"
+            value={password}
+            onChange={(e) => setPassword(e.target.value)}
+            autoComplete="new-password"
+            required
+          />
+        </div>
+        <Button type="submit" disabled={loading} size="lg">
           {loading ? "Регистрация..." : "Зарегистрироваться"}
         </Button>
-      </div>
+        <p className="text-sm text-muted-foreground text-center mt-2">
+          Уже есть аккаунт?{" "}
+          <Link href="/login" className="text-primary hover:underline">
+            Войти
+          </Link>
+        </p>
+      </form>
     </div>
   );
 }

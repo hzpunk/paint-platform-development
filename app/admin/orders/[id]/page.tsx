@@ -3,13 +3,19 @@
 import { useEffect, useState, use } from "react";
 import { useRouter } from "next/navigation";
 
-type Item = { name: string; volume: number; quantity: number; price: number };
+type Item = { name?: string; volume?: number; qty?: number; price?: number };
 type Order = {
   id: string;
-  date: string;
-  total: number;
-  items: Item[];
-  status: string;
+  createdAt?: string;
+  total?: number;
+  items?: Item[];
+  status?: string;
+  customerName?: string | null;
+  customerEmail?: string | null;
+  customerPhone?: string | null;
+  deliveryMethod?: string | null;
+  deliveryAddress?: string | null;
+  paymentMethod?: string | null;
 };
 
 export default function OrderPage({ params }: { params: Promise<{ id: string }> }) {
@@ -18,110 +24,121 @@ export default function OrderPage({ params }: { params: Promise<{ id: string }> 
   const [order, setOrder] = useState<Order | null>(null);
   const [status, setStatus] = useState("");
   const [loading, setLoading] = useState(false);
-  const [audit, setAudit] = useState<any[]>([]);
 
   useEffect(() => {
-    fetch(`/api/admin/orders/${id}`)
-      .then((r) => r.json())
-      .then((o) => {
-        setOrder(o);
-        setStatus(o.status);
-      });
+    let active = true;
 
-    // fetch audit
-    fetch(`/api/admin/orders/${id}`, {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ action: "audit" }),
-    })
-      .then((r) => r.json())
-      .then((a) => setAudit(a || []))
-      .catch(() => setAudit([]));
+    const loadOrder = async () => {
+      try {
+        const response = await fetch(`/api/admin/orders/${id}`);
+        if (!response.ok) throw new Error("Заказ не найден");
+        const data = await response.json();
+        if (!active) return;
+        setOrder(data);
+        setStatus(data.status || "Оформлен");
+      } catch {
+        if (active) {
+          setOrder(null);
+          setStatus("Оформлен");
+        }
+      }
+    };
+
+    loadOrder();
+    return () => { active = false; };
   }, [id]);
 
   async function changeStatus() {
     if (!order) return;
     setLoading(true);
-    const res = await fetch(`/api/admin/orders/${order.id}`, {
-      method: "PATCH",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ status, actor: "admin" }),
-    });
-    if (res.ok) {
-      const updated = await res.json();
-      setOrder(updated);
-      // refresh audit
-      const ares = await fetch(`/api/admin/orders/${order.id}`, {
-        method: "POST",
+    try {
+      const response = await fetch(`/api/admin/orders/${order.id}`, {
+        method: "PATCH",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ action: "audit" }),
+        body: JSON.stringify({ status }),
       });
-      const ajson = await ares.json();
-      setAudit(ajson || []);
+      if (response.ok) {
+        const updated = await response.json();
+        setOrder({ ...order, ...updated, status: updated.status || status });
+      }
+    } finally {
+      setLoading(false);
     }
-    setLoading(false);
   }
 
-  if (!order) return <div>Загрузка заказа…</div>;
+  if (!order) return <div className="rounded-lg border border-border bg-card p-6">Загрузка заказа…</div>;
+
+  const items = Array.isArray(order.items) ? order.items : [];
 
   return (
     <div className="space-y-4">
-      <h1 className="text-2xl font-heading font-bold">Заказ #{order.id}</h1>
-      <div className="rounded-lg border p-4">
-        <p className="text-sm text-muted-foreground">Дата: {order.date}</p>
-        <p className="text-sm">
-          Сумма: <strong>{order.total} ₽</strong>
-        </p>
-        <div className="mt-3">
+      <div className="flex items-center justify-between gap-3">
+        <h1 className="text-2xl font-heading font-bold">Заказ #{order.id}</h1>
+        <button onClick={() => router.back()} className="rounded-md border px-3 py-2 text-sm">Назад</button>
+      </div>
+      <div className="rounded-lg border border-border bg-card p-4">
+        <div className="flex flex-wrap items-center gap-3 text-sm text-muted-foreground">
+          <span>Дата: {order.createdAt ? new Date(order.createdAt).toLocaleString("ru") : "—"}</span>
+          <span>Сумма: <strong className="text-foreground">{(order.total ?? 0).toLocaleString("ru-RU")} ₽</strong></span>
+          <span>Статус: <strong className="text-foreground">{order.status || "Оформлен"}</strong></span>
+        </div>
+
+        <div className="mt-4 grid gap-4 lg:grid-cols-2">
+          <div className="rounded-md border border-border/60 bg-muted/20 p-3">
+            <h3 className="font-semibold">Контакты</h3>
+            <div className="mt-2 space-y-1 text-sm text-muted-foreground">
+              <p>{order.customerName || "—"}</p>
+              <p>{order.customerEmail || "—"}</p>
+              <p>{order.customerPhone || "—"}</p>
+            </div>
+          </div>
+          <div className="rounded-md border border-border/60 bg-muted/20 p-3">
+            <h3 className="font-semibold">Доставка</h3>
+            <div className="mt-2 space-y-1 text-sm text-muted-foreground">
+              <p>{order.deliveryMethod || "—"}</p>
+              <p>{order.deliveryAddress || "—"}</p>
+              <p>{order.paymentMethod || "—"}</p>
+            </div>
+          </div>
+        </div>
+
+        <div className="mt-4">
           <h3 className="font-semibold">Товары</h3>
-          <ul className="list-disc pl-5">
-            {order.items.map((it, i) => (
-              <li key={i}>
-                {it.name} · {it.volume} л · {it.quantity} шт. — {it.price} ₽
-              </li>
-            ))}
-          </ul>
+          {items.length > 0 ? (
+            <ul className="mt-2 list-disc pl-5 text-sm text-muted-foreground">
+              {items.map((it, i) => (
+                <li key={i}>
+                  {it.name || "Товар"} · {it.volume ?? 0} л · {it.qty ?? 1} шт. — {(it.price ?? 0).toLocaleString("ru-RU")} ₽
+                </li>
+              ))}
+            </ul>
+          ) : (
+            <p className="mt-2 text-sm text-muted-foreground">Состав заказа пуст.</p>
+          )}
         </div>
 
         <div className="mt-4">
           <label className="text-sm font-medium">Статус</label>
-          <div className="flex gap-2 mt-2">
+          <div className="mt-2 flex flex-wrap gap-2">
             <select
               value={status}
               onChange={(e) => setStatus(e.target.value)}
-              className="input"
+              className="rounded-md border border-border bg-background px-3 py-2 text-sm"
             >
-              <option>Оформлен</option>
-              <option>Собирается</option>
-              <option>В пути</option>
-              <option>Доставлен</option>
-              <option>Отменён</option>
+              <option value="Оформлен">Оформлен</option>
+              <option value="Собирается">Собирается</option>
+              <option value="В пути">В пути</option>
+              <option value="Доставлен">Доставлен</option>
+              <option value="Отменён">Отменён</option>
             </select>
             <button
               disabled={loading}
               onClick={changeStatus}
-              className="btn-primary"
+              className="rounded-md bg-primary px-3 py-2 text-sm font-medium text-primary-foreground disabled:opacity-50"
             >
-              Сменить
-            </button>
-            <button onClick={() => router.back()} className="btn-secondary">
-              Назад
+              {loading ? "Сохраняю…" : "Сменить"}
             </button>
           </div>
-        </div>
-
-        <div className="mt-6">
-          <h3 className="font-semibold">Аудит лог</h3>
-          <ul className="list-none mt-2">
-            {audit.map((a, i) => (
-              <li key={i} className="text-sm text-muted-foreground">
-                {a.at} · {a.actor} · {a.from} → {a.to}
-              </li>
-            ))}
-            {audit.length === 0 && (
-              <li className="text-sm text-muted-foreground">Записей нет</li>
-            )}
-          </ul>
         </div>
       </div>
     </div>
