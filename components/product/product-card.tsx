@@ -3,9 +3,11 @@
 import Link from 'next/link'
 import { Card, CardContent, CardFooter, CardHeader } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
-import { Star } from 'lucide-react'
+import { Star, Heart } from 'lucide-react'
 import type { Product } from '@/lib/types'
 import { bonusFor } from '@/lib/data'
+import { cn } from '@/lib/utils'
+import { useFavorites } from '@/components/favorites/favorites-provider'
 import { AddToCartButton } from './add-to-cart-button'
 
 interface ProductCardProps {
@@ -19,9 +21,20 @@ export function ProductCard({ product }: ProductCardProps) {
   const brandName = typeof product.brand === 'string' ? product.brand : product.brand?.name || 'Бренд'
   const isInStock = product.inStock ?? product.stock > 0
 
+  // Избранное: клиентский стор (localStorage + синк с сервером при входе).
+  const { isFavorite, toggle } = useFavorites()
+  const liked = isFavorite(product.slug)
+
+  // Клик по сердечку не должен открывать страницу товара (внутри ссылки).
+  function handleLike(e: React.MouseEvent) {
+    e.preventDefault()
+    e.stopPropagation()
+    toggle(product.slug)
+  }
+
   return (
     <Card className="group flex h-full flex-col overflow-hidden border-border/60 bg-card shadow-sm transition-all duration-200 hover:-translate-y-1 hover:shadow-md">
-      <CardHeader className="p-0">
+      <CardHeader className="relative p-0">
         <Link href={`/product/${product.slug}`} className="block">
           <div className="relative aspect-square overflow-hidden bg-muted/60">
             {primaryImage ? (
@@ -48,6 +61,18 @@ export function ProductCard({ product }: ProductCardProps) {
             </div>
           </div>
         </Link>
+        <button
+          type="button"
+          onClick={handleLike}
+          aria-label={liked ? 'Убрать из избранного' : 'Добавить в избранное'}
+          aria-pressed={liked}
+          className={cn(
+            'absolute right-2 top-2 z-10 flex size-9 items-center justify-center rounded-full border border-border/60 bg-card/90 text-muted-foreground shadow-sm backdrop-blur transition-all duration-200 hover:scale-105 hover:text-destructive focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring',
+            liked && 'text-destructive',
+          )}
+        >
+          <Heart className={cn('size-5 transition-all', liked && 'fill-destructive')} />
+        </button>
       </CardHeader>
 
       <CardContent className="flex flex-1 flex-col gap-3 p-4">

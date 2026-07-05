@@ -27,6 +27,28 @@ const SORT_OPTIONS = [
 
 const MAX_PRICE = 15000
 
+// Справочники фильтров вынесены на уровень модуля — используются и в сайдбаре, и в чипах.
+const CATEGORY_NAMES: Record<string, string> = {
+  interior: 'Интерьерные краски',
+  facade: 'Фасадные краски',
+  primer: 'Грунтовки',
+  enamel: 'Эмали и лаки',
+  anticor: 'Антикоррозийные',
+  special: 'Спецсоставы',
+}
+
+const BRAND_NAMES: Record<string, string> = {
+  tikkurila: 'Tikkurila',
+  dulux: 'Dulux',
+  caparol: 'Caparol',
+  tex: 'ТЕКС',
+  lakra: 'Lakra',
+  olki: 'Ольки',
+}
+
+const SURFACES = ['Стены', 'Потолок', 'Дерево', 'Металл', 'Бетон', 'Кирпич', 'Штукатурка']
+const PAINT_TYPES: PaintType[] = ['водоэмульсионная', 'алкидная', 'акриловая', 'эпоксидная']
+
 function CatalogContent() {
   const params = useSearchParams()
   const initCategory = params.get('category') ?? ''
@@ -118,53 +140,33 @@ function CatalogContent() {
     <aside className="flex flex-col gap-6">
       {/* Категория */}
       <FilterGroup title="Категория">
-        {['interior', 'facade', 'primer', 'enamel', 'anticor', 'special'].map((slug) => {
-          const names = {
-            interior: 'Интерьерные краски',
-            facade: 'Фасадные краски',
-            primer: 'Грунтовки',
-            enamel: 'Эмали и лаки',
-            anticor: 'Антикоррозийные',
-            special: 'Спецсоставы'
-          }
-          return (
-            <CheckItem
-              key={slug}
-              id={`cat-${slug}`}
-              label={names[slug as keyof typeof names]}
-              checked={selectedCategories.includes(slug)}
-              onChange={() => toggle(selectedCategories, slug, setSelectedCategories)}
-            />
-          )
-        })}
+        {Object.entries(CATEGORY_NAMES).map(([slug, label]) => (
+          <CheckItem
+            key={slug}
+            id={`cat-${slug}`}
+            label={label}
+            checked={selectedCategories.includes(slug)}
+            onChange={() => toggle(selectedCategories, slug, setSelectedCategories)}
+          />
+        ))}
       </FilterGroup>
 
       {/* Бренд */}
       <FilterGroup title="Бренд">
-        {['tikkurila', 'dulux', 'caparol', 'tex', 'lakra', 'olki'].map((slug) => {
-          const names = {
-            tikkurila: 'Tikkurila',
-            dulux: 'Dulux',
-            caparol: 'Caparol',
-            tex: 'ТЕКС',
-            lakra: 'Lakra',
-            olki: 'Ольки'
-          }
-          return (
-            <CheckItem
-              key={slug}
-              id={`brand-${slug}`}
-              label={names[slug as keyof typeof names]}
-              checked={selectedBrands.includes(slug)}
-              onChange={() => toggle(selectedBrands, slug, setSelectedBrands)}
-            />
-          )
-        })}
+        {Object.entries(BRAND_NAMES).map(([slug, label]) => (
+          <CheckItem
+            key={slug}
+            id={`brand-${slug}`}
+            label={label}
+            checked={selectedBrands.includes(slug)}
+            onChange={() => toggle(selectedBrands, slug, setSelectedBrands)}
+          />
+        ))}
       </FilterGroup>
 
       {/* Поверхность */}
       <FilterGroup title="Поверхность">
-        {['Стены', 'Потолок', 'Дерево', 'Металл', 'Бетон', 'Кирпич', 'Штукатурка'].map((s) => (
+        {SURFACES.map((s) => (
           <CheckItem
             key={s}
             id={`surf-${s}`}
@@ -177,13 +179,13 @@ function CatalogContent() {
 
       {/* Тип */}
       <FilterGroup title="Тип краски">
-        {['водоэмульсионная', 'алкидная', 'акриловая', 'эпоксидная'].map((t) => (
+        {PAINT_TYPES.map((t) => (
           <CheckItem
             key={t}
             id={`type-${t}`}
             label={t.charAt(0).toUpperCase() + t.slice(1)}
-            checked={selectedTypes.includes(t as PaintType)}
-            onChange={() => toggle(selectedTypes, t as PaintType, setSelectedTypes)}
+            checked={selectedTypes.includes(t)}
+            onChange={() => toggle(selectedTypes, t, setSelectedTypes)}
           />
         ))}
       </FilterGroup>
@@ -249,7 +251,9 @@ function CatalogContent() {
       <div className="flex gap-8">
         {/* Сайдбар Desktop */}
         <div className="hidden w-60 shrink-0 lg:block">
-          <Filters />
+          <div className="sticky top-24 max-h-[calc(100vh-7rem)] overflow-y-auto pr-2">
+            <Filters />
+          </div>
         </div>
 
         {/* Основной контент */}
@@ -302,6 +306,55 @@ function CatalogContent() {
             </div>
           </div>
 
+          {/* Чипы активных фильтров */}
+          {hasFilters && (
+            <div className="mb-4 flex flex-wrap items-center gap-2">
+              {selectedCategories.map((slug) => (
+                <FilterChip
+                  key={`c-${slug}`}
+                  label={CATEGORY_NAMES[slug] ?? slug}
+                  onRemove={() => toggle(selectedCategories, slug, setSelectedCategories)}
+                />
+              ))}
+              {selectedBrands.map((slug) => (
+                <FilterChip
+                  key={`b-${slug}`}
+                  label={BRAND_NAMES[slug] ?? slug}
+                  onRemove={() => toggle(selectedBrands, slug, setSelectedBrands)}
+                />
+              ))}
+              {selectedSurfaces.map((s) => (
+                <FilterChip
+                  key={`s-${s}`}
+                  label={s}
+                  onRemove={() => toggle(selectedSurfaces, s, setSelectedSurfaces)}
+                />
+              ))}
+              {selectedTypes.map((t) => (
+                <FilterChip
+                  key={`t-${t}`}
+                  label={t.charAt(0).toUpperCase() + t.slice(1)}
+                  onRemove={() => toggle(selectedTypes, t, setSelectedTypes)}
+                />
+              ))}
+              {onlyInStock && (
+                <FilterChip label="Только в наличии" onRemove={() => setOnlyInStock(false)} />
+              )}
+              {(priceRange[0] > 0 || priceRange[1] < MAX_PRICE) && (
+                <FilterChip
+                  label={`${priceRange[0].toLocaleString('ru')} — ${priceRange[1].toLocaleString('ru')} ₽`}
+                  onRemove={() => setPriceRange([0, MAX_PRICE])}
+                />
+              )}
+              <button
+                onClick={resetFilters}
+                className="text-sm font-medium text-primary underline-offset-4 hover:underline"
+              >
+                Очистить всё
+              </button>
+            </div>
+          )}
+
           {/* Сетка товаров */}
           {filtered.length === 0 ? (
             <div className="flex flex-col items-center gap-4 py-20 text-center">
@@ -338,6 +391,22 @@ function FilterGroup({ title, children }: { title: string; children: React.React
       <p className="mb-2 text-sm font-semibold">{title}</p>
       <div className="flex flex-col gap-2">{children}</div>
     </div>
+  )
+}
+
+function FilterChip({ label, onRemove }: { label: string; onRemove: () => void }) {
+  return (
+    <span className="inline-flex items-center gap-1 rounded-full bg-secondary px-3 py-1 text-sm text-secondary-foreground">
+      {label}
+      <button
+        type="button"
+        onClick={onRemove}
+        aria-label={`Убрать фильтр ${label}`}
+        className="rounded-full p-0.5 text-muted-foreground transition-colors hover:bg-background hover:text-foreground"
+      >
+        <X className="size-3.5" />
+      </button>
+    </span>
   )
 }
 
