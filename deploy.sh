@@ -19,7 +19,7 @@ echo "--> Code is up to date. Continuing deployment..."
 echo "--> Installing npm packages..."
 npm install --legacy-peer-deps
 
-# ─── 2. Helper: определяем команду docker ─────────────────────────────
+# ─── 2. Helper: определяем команду docker compose ─────────────────────
 if command -v docker-compose &>/dev/null; then
   DC="docker-compose"
 elif docker compose version &>/dev/null 2>&1; then
@@ -28,57 +28,61 @@ else
   DC=""
 fi
 
-# ─── 3. Запуск PostgreSQL ─────────────────────────────────────────────
+# ─── 3. Запуск PostgreSQL + ожидание готовности ───────────────────────
 echo "--> Ensuring PostgreSQL is running..."
 
-PG_RUNNING=$(docker ps --filter "name=paint_db" --filter "status=running" -q 2>/dev/null || true)
+# Функция ожидания — принимает способ проверки
+wait_for_pg() {
+  local CHECK_CMD="$1"
+  local MAX_WAIT=60
+  local WAITED=0
+  echo "--> Waiting for PostgreSQL to accept connections..."
+  until eval "$CHECK_CMD" &>/dev/null; do
+    if [ "$WAITED" -ge "$MAX_WAIT" ]; then
+      echo "ERROR: PostgreSQL not ready after ${MAX_WAIT}s."
+      exit 1
+    fi
+    sleep 1
+    WAITED=$((WAITED + 1))
+  done
+  echo "--> PostgreSQL ready (${WAITED}s)."
+}
 
-if [ -n "$PG_RUNNING" ]; then
-  echo "--> PostgreSQL container 'paint_db' is already running."
-
-elif [ -n "$DC" ] && [ -f "docker-compose.prod.yml" ]; then
-  # Запускаем через docker-compose
-  echo "--> Starting DB via docker-compose ($DC)..."
+if [ -n "$DC" ] && [ -f "docker-compose.prod.yml" ]; then
+  # ── Способ 1: docker-compose ──────────────────────────────────────
+  echo "--> Starting DB via $DC..."
   $DC -f docker-compose.prod.yml up -d db
+  # Ждём через compose exec — имя сервиса всегда "db"
+  wait_for_pg "$DC -f docker-compose.prod.yml exec -T db pg_isready -U postgres -q"
 
 else
-  # Запускаем напрямую через docker run (fallback)
-  echo "--> docker-compose.prod.yml not found. Starting DB via 'docker run'..."
-  docker run -d \
-    --name paint_db \
-    --restart always \
-    -e POSTGRES_USER=postgres \
-    -e POSTGRES_PASSWORD=postgres \
-    -e POSTGRES_DB=paint_platform_dev \
-    -p 5432:5432 \
-    -v paint_pgdata:/var/lib/postgresql/data \
-    postgres:15 2>/dev/null || {
-      echo "--> Container 'paint_db' already exists but stopped. Starting it..."
-      docker start paint_db
-    }
+  # ── Способ 2: docker run (fallback) ───────────────────────────────
+  echo "--> docker-compose.prod.yml not found. Starting via 'docker run'..."
+  if docker ps -a --filter "name=^paint_db$" -q | grep -q .; then
+    echo "--> Container paint_db exists. Starting..."
+    docker start paint_db 2>/dev/null || true
+  else
+    echo "--> Creating new container paint_db..."
+    docker run -d \
+      --name paint_db \
+      --restart always \
+      -e POSTGRES_USER=postgres \
+      -e POSTGRES_PASSWORD=postgres \
+      -e POSTGRES_DB=paint_platform_dev \
+      -p 5432:5432 \
+      -v paint_pgdata:/var/lib/postgresql/data \
+      postgres:15
+  fi
+  # Ждём через docker exec с точным именем
+  wait_for_pg "docker exec paint_db pg_isready -U postgres -q"
 fi
 
-# ─── 4. Ждём готовности PostgreSQL ────────────────────────────────────
-echo "--> Waiting for PostgreSQL to accept connections..."
-MAX_WAIT=45
-WAITED=0
-until docker exec paint_db pg_isready -U postgres -q 2>/dev/null; do
-  if [ "$WAITED" -ge "$MAX_WAIT" ]; then
-    echo "ERROR: PostgreSQL not ready after ${MAX_WAIT}s."
-    docker logs paint_db 2>&1 | tail -20
-    exit 1
-  fi
-  sleep 1
-  WAITED=$((WAITED + 1))
-done
-echo "--> PostgreSQL ready (${WAITED}s)."
-
-# ─── 5. Prisma: generate + apply schema ───────────────────────────────
+# ─── 4. Prisma: generate + apply schema ───────────────────────────────
 echo "--> Running Prisma Client generation & database updates..."
 npx prisma generate
 npx prisma db push --accept-data-loss
 
-# ─── 6. Build & restart app ───────────────────────────────────────────
+# ─── 5. Build & restart app ───────────────────────────────────────────
 if command -v pm2 &>/dev/null && [ -f "ecosystem.config.js" ]; then
   echo "--> PM2 detected! Building and reloading..."
   npm run build
