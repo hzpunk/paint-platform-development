@@ -1,9 +1,13 @@
+# syntax=docker/dockerfile:1.4
+
 # Stage 1: Install dependencies
 FROM node:20-alpine AS deps
 RUN apk add --no-cache libc6-compat
 WORKDIR /app
 COPY package*.json ./
-RUN npm ci
+# --mount=type=cache сохраняет скачанные пакеты между сборками на диске сервера
+RUN --mount=type=cache,target=/root/.npm \
+    npm ci
 
 # Stage 2: Build application
 FROM node:20-alpine AS builder
@@ -13,8 +17,11 @@ COPY . .
 # Disable Next.js telemetry during build
 ENV NEXT_TELEMETRY_DISABLED=1
 ENV DATABASE_URL="postgresql://postgres:postgres@localhost:5432/paint_platform_dev"
-RUN npx prisma generate
-RUN npm run build
+RUN --mount=type=cache,target=/root/.npm \
+    npx prisma generate
+# Кэшируем Webpack/Turbopack между пересборками — самый большой выигрыш
+RUN --mount=type=cache,target=/app/.next/cache \
+    npm run build
 
 # Stage 3: Production runner
 FROM node:20-alpine AS runner

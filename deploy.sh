@@ -13,6 +13,10 @@ if [ -z "$DEPLOY_RESTARTED" ]; then
   exec bash "$0" "$@"
 fi
 
+# Включаем Docker BuildKit для быстрого кэширования сборки
+export DOCKER_BUILDKIT=1
+export COMPOSE_DOCKER_CLI_BUILD=1
+
 echo "--> Code is up to date. Continuing deployment..."
 
 # ─── 1. Install dependencies ──────────────────────────────────────────
