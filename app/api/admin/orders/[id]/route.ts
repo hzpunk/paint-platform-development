@@ -3,41 +3,81 @@ import {
   getOrder,
   updateOrderStatus,
   getAuditForOrder,
+  deleteOrder,
 } from "@/lib/adminOrders";
+import { requireAdmin } from "@/lib/serverAuth";
 
 export async function GET(
   _: Request,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> },
 ) {
+  const { id } = await params;
+
   try {
-    const order = await getOrder(params.id);
+    const order = await getOrder(id);
     if (!order) {
       return NextResponse.json({ error: "Order not found" }, { status: 404 });
     }
-    const audit = await getAuditForOrder(params.id);
+    const audit = await getAuditForOrder(id);
     return NextResponse.json({ ...order, audit });
   } catch (error) {
-    console.error(`Failed to fetch order ${params.id}:`, error);
+    console.error(`Failed to fetch order ${id}:`, error);
     return NextResponse.json(
-      { error: `Failed to fetch order ${params.id}` },
-      { status: 500 }
+      { error: `Failed to fetch order ${id}` },
+      { status: 500 },
     );
   }
 }
 
 export async function PUT(
   req: Request,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> },
 ) {
+  const { id } = await params;
+
   try {
-    const { status } = await req.json();
-    const updatedOrder = await updateOrderStatus(params.id, status);
+    const body = await req.json();
+    const { status, cancellationReason } = body;
+
+    if (!status || typeof status !== "string") {
+      return NextResponse.json(
+        { error: "Status is required" },
+        { status: 400 },
+      );
+    }
+
+    const updatedOrder = await updateOrderStatus(
+      id,
+      status,
+      cancellationReason,
+    );
     return NextResponse.json(updatedOrder);
   } catch (error) {
-    console.error(`Failed to update order ${params.id}:`, error);
+    console.error(`Failed to update order ${id}:`, error);
     return NextResponse.json(
-      { error: `Failed to update order ${params.id}` },
-      { status: 500 }
+      { error: `Failed to update order ${id}` },
+      { status: 500 },
+    );
+  }
+}
+
+export async function DELETE(
+  req: Request,
+  { params }: { params: Promise<{ id: string }> },
+) {
+  const { id } = await params;
+
+  try {
+    const notAuthorized = await requireAdmin(req);
+    if (notAuthorized) return notAuthorized;
+
+    await deleteOrder(id);
+    return new Response(null, { status: 204 });
+  } catch (error) {
+    console.error(`Failed to delete order ${id}:`, error);
+    return NextResponse.json(
+      { error: `Failed to delete order ${id}` },
+      { status: 500 },
     );
   }
 }

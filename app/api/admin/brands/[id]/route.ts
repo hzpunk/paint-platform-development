@@ -2,7 +2,10 @@ import { NextResponse } from "next/server";
 import prisma from "@/lib/db";
 import { requireAdmin } from "@/lib/serverAuth";
 
-export async function GET(_: Request, { params }: { params: Promise<{ id: string }> }) {
+export async function GET(
+  _: Request,
+  { params }: { params: Promise<{ id: string }> },
+) {
   const { id } = await params;
   const brand = await prisma.brand.findUnique({
     where: { id },
@@ -35,13 +38,13 @@ export async function PATCH(
 }
 
 export async function DELETE(
-  _: Request,
+  req: Request,
   { params }: { params: Promise<{ id: string }> },
 ) {
-  const { id } = await params;
-  const notAllowed = await requireAdmin(_);
+  const notAllowed = await requireAdmin(req);
   if (notAllowed) return notAllowed;
 
+  const { id } = await params;
   await prisma.brand.delete({ where: { id } });
-  return new Response(null, { status: 204 });
+  return NextResponse.json({ success: true });
 }

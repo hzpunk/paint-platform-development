@@ -1,80 +1,96 @@
-'use client'
+"use client";
 
-import { useEffect, useState } from 'react'
-import { Star, Quote } from 'lucide-react'
-import { cn } from '@/lib/utils'
-import type { Review } from '@/lib/types'
+import { useEffect, useState } from "react";
+import { motion } from "framer-motion";
+import { Star, Quote } from "lucide-react";
+import { cn } from "@/lib/utils";
+import type { Review } from "@/lib/types";
+
+const containerVariants = {
+  hidden: {},
+  visible: { transition: { staggerChildren: 0.1 } },
+};
+
+const cardVariants = {
+  hidden: { opacity: 0, y: 28 },
+  visible: { opacity: 1, y: 0, transition: { duration: 0.5, ease: [0.22, 1, 0.36, 1] } },
+};
 
 /**
- * Компонент блока отзывов
- * Загружает последние отзывы с сервера через API
+ * Блок отзывов покупателей с анимацией входа
  */
 export default function ReviewsBlock() {
-  const [reviews, setReviews] = useState<Review[]>([])
-  const [loading, setLoading] = useState(true)
-  const [error, setError] = useState<string | null>(null)
+  const [reviews, setReviews] = useState<Review[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState(false);
 
   useEffect(() => {
-    const fetchReviews = async () => {
-      try {
-        const response = await fetch('/api/reviews')
-        if (!response.ok) {
-          throw new Error('Ошибка загрузки отзывов')
+    fetch("/api/reviews")
+      .then((r) => r.json())
+      .then((data) => {
+        if (Array.isArray(data) && data.length > 0) {
+          setReviews(data);
+        } else {
+          setError(true);
         }
-        const data = await response.json()
-        setReviews(data)
-      } catch (err) {
-        console.error('Ошибка при загрузке отзывов:', err)
-        setError('Не удалось загрузить отзывы')
-      } finally {
-        setLoading(false)
-      }
-    }
+      })
+      .catch(() => setError(true))
+      .finally(() => setLoading(false));
+  }, []);
 
-    fetchReviews()
-  }, [])
-
-  // Не показываем пустую секцию, если отзывов нет или произошла ошибка
-  if (!loading && (error || reviews.length === 0)) {
-    return null
-  }
+  if (!loading && (error || reviews.length === 0)) return null;
 
   return (
-    <section className="border-t border-border bg-secondary/50">
-      <div className="section-shell py-14 md:py-20">
-        <div className="mb-10 text-center">
-          <p className="text-xs font-semibold uppercase tracking-[0.16em] text-accent-foreground/60">
-            Нам доверяют
-          </p>
-          <h2 className="mt-1 font-heading text-2xl font-bold text-balance md:text-3xl">
+    <section className="border-t border-border bg-secondary/30 py-16 md:py-24">
+      <div className="section-shell">
+        <motion.div
+          initial={{ opacity: 0, y: 20 }}
+          whileInView={{ opacity: 1, y: 0 }}
+          viewport={{ once: true, margin: "-60px" }}
+          transition={{ duration: 0.5 }}
+          className="mb-12 text-center"
+        >
+          <p className="text-xs font-bold uppercase tracking-[0.2em] text-accent">Нам доверяют</p>
+          <h2 className="mt-2 font-heading text-3xl font-extrabold md:text-4xl">
             Отзывы покупателей
           </h2>
-        </div>
+          <p className="mx-auto mt-3 max-w-md text-muted-foreground">
+            Реальные отзывы от клиентов о нашей продукции и сервисе
+          </p>
+        </motion.div>
 
         {loading ? (
           <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
             {[...Array(3)].map((_, i) => (
-              <div key={i} className="animate-pulse">
-                <div className="h-48 rounded-xl bg-muted" />
-              </div>
+              <div key={i} className="h-52 animate-pulse rounded-2xl bg-muted" />
             ))}
           </div>
         ) : (
-          <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+          <motion.div
+            variants={containerVariants}
+            initial="hidden"
+            whileInView="visible"
+            viewport={{ once: true, margin: "-40px" }}
+            className="grid gap-5 sm:grid-cols-2 lg:grid-cols-3"
+          >
             {reviews.map((review) => {
-              const name = review.user?.name || review.author || 'Покупатель'
-              const initial = name.trim().charAt(0).toUpperCase() || 'П'
+              const name = review.user?.name || review.author || "Покупатель";
+              const initial = name.trim().charAt(0).toUpperCase() || "П";
               return (
-                <figure
+                <motion.figure
                   key={review.id}
-                  className="relative flex flex-col rounded-xl border border-border bg-card p-6 shadow-[var(--shadow-card)] transition-shadow hover:shadow-[var(--shadow-card-hover)]"
+                  variants={cardVariants}
+                  className="group relative flex flex-col overflow-hidden rounded-2xl border border-border bg-card p-6 shadow-sm transition-all duration-300 hover:-translate-y-1 hover:shadow-lg hover:border-primary/20"
                 >
+                  {/* Декоративная кавычка */}
                   <Quote
-                    aria-hidden="true"
-                    className="absolute top-5 right-5 size-6 text-secondary-foreground/15"
+                    aria-hidden
+                    className="absolute -right-1 -top-1 size-16 text-primary/5 transition-colors duration-300 group-hover:text-accent/10"
                   />
+
+                  {/* Звёзды */}
                   <div
-                    className="flex items-center gap-1"
+                    className="flex items-center gap-0.5"
                     role="img"
                     aria-label={`Оценка: ${review.rating} из 5`}
                   >
@@ -82,29 +98,41 @@ export default function ReviewsBlock() {
                       <Star
                         key={i}
                         className={cn(
-                          'size-4',
-                          i < review.rating
-                            ? 'fill-accent text-accent'
-                            : 'text-border',
+                          "size-4",
+                          i < review.rating ? "fill-accent text-accent" : "text-border"
                         )}
                       />
                     ))}
                   </div>
-                  <blockquote className="mt-4 flex-1 text-sm leading-relaxed text-foreground/85">
+
+                  {/* Текст */}
+                  <blockquote className="relative mt-4 flex-1 text-sm leading-relaxed text-foreground/85">
                     {review.text}
                   </blockquote>
+
+                  {/* Автор */}
                   <figcaption className="mt-5 flex items-center gap-3 border-t border-border pt-4">
-                    <span className="flex size-9 items-center justify-center rounded-full bg-primary text-sm font-bold text-primary-foreground">
+                    <span className="flex size-10 items-center justify-center rounded-full bg-primary text-sm font-extrabold text-primary-foreground">
                       {initial}
                     </span>
-                    <span className="text-sm font-semibold">{name}</span>
+                    <div>
+                      <p className="text-sm font-bold">{name}</p>
+                      {review.createdAt && (
+                        <p className="text-xs text-muted-foreground">
+                          {new Date(review.createdAt).toLocaleDateString("ru-RU", {
+                            month: "long",
+                            year: "numeric",
+                          })}
+                        </p>
+                      )}
+                    </div>
                   </figcaption>
-                </figure>
-              )
+                </motion.figure>
+              );
             })}
-          </div>
+          </motion.div>
         )}
       </div>
     </section>
-  )
+  );
 }

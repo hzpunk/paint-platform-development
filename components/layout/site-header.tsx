@@ -92,7 +92,7 @@ export function SiteHeader() {
                 <span className="flex size-8 items-center justify-center rounded-lg bg-primary text-primary-foreground">
                   <Paintbrush className="size-4" />
                 </span>
-                Краска<span className="-ml-2 text-accent">Проф</span>
+                Краски<span className="-ml-2 text-accent">УНАС</span>
               </SheetTitle>
             </SheetHeader>
             <nav className="flex flex-col gap-1 overflow-y-auto px-4 py-4">
@@ -135,13 +135,13 @@ export function SiteHeader() {
         <Link
           href="/"
           className="group flex shrink-0 items-center gap-2"
-          aria-label="КраскаПроф — на главную"
+          aria-label="КраскиУНАС — на главную"
         >
           <span className="flex size-9 items-center justify-center rounded-lg bg-primary text-primary-foreground shadow-sm transition-transform duration-200 group-hover:scale-105 group-hover:-rotate-6">
             <Paintbrush className="size-5" />
           </span>
           <span className="font-heading text-lg font-extrabold tracking-tight text-primary">
-            Краска<span className="text-accent">Проф</span>
+            Краски<span className="text-accent">УНАС</span>
           </span>
         </Link>
 

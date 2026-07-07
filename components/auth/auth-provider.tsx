@@ -52,6 +52,16 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     refresh();
   }, [refresh]);
 
+  useEffect(() => {
+    if (typeof window !== "undefined") {
+      const params = new URLSearchParams(window.location.search);
+      const ref = params.get("ref");
+      if (ref) {
+        localStorage.setItem("kraskaprof.referred_by_code", ref);
+      }
+    }
+  }, []);
+
   async function login(email: string, password: string) {
     const res = await fetch("/api/auth/login", {
       method: "POST",
@@ -73,15 +83,20 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     phone?: string;
     password: string;
   }) {
+    const refCode = typeof window !== "undefined" ? localStorage.getItem("kraskaprof.referred_by_code") : null;
     const res = await fetch("/api/auth/register", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify(data),
+      body: JSON.stringify({ ...data, referredByCode: refCode }),
     });
 
     if (!res.ok) {
       const body = await res.json().catch(() => ({}));
       throw new Error(body.message || "Ошибка регистрации");
+    }
+
+    if (typeof window !== "undefined") {
+      localStorage.removeItem("kraskaprof.referred_by_code");
     }
 
     await refresh();

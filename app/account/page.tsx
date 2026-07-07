@@ -1,8 +1,9 @@
-'use client';
+"use client";
 
 export const dynamic = "force-dynamic";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, Suspense } from "react";
+import { useSearchParams } from "next/navigation";
 import Link from "next/link";
 import {
   Package,
@@ -31,22 +32,35 @@ import { useFavorites } from "@/components/favorites/favorites-provider";
 import { formatPrice, formatDate, pluralize } from "@/lib/format";
 import { ProductCard } from "@/components/product/product-card";
 import { cn } from "@/lib/utils";
-import type { OrderStatus, Product } from "@/lib/types";
+import type { Product } from "@/lib/types";
 import { toast } from "sonner";
 
 const STATUS_CONFIG: Record<
-  OrderStatus,
+  string,
   { icon: React.ElementType; color: string; label: string }
 > = {
-  Оформлен: {
+  оформлен: {
     icon: CheckCircle,
     color: "text-muted-foreground",
     label: "Оформлен",
   },
-  Собирается: { icon: Archive, color: "text-primary", label: "Собирается" },
-  "В пути": { icon: Truck, color: "text-accent", label: "В пути" },
-  Доставлен: { icon: CheckCircle, color: "text-success", label: "Доставлен" },
-  Отменён: { icon: XCircle, color: "text-destructive", label: "Отменён" },
+  собирается: { icon: Archive, color: "text-primary", label: "Собирается" },
+  "в пути": { icon: Truck, color: "text-accent", label: "В пути" },
+  доставлен: { icon: CheckCircle, color: "text-success", label: "Доставлен" },
+  отменён: { icon: XCircle, color: "text-destructive", label: "Отменён" },
+  new: { icon: Clock, color: "text-muted-foreground", label: "Новый" },
+  pending: { icon: Clock, color: "text-primary", label: "В обработке" },
+  collected: { icon: Archive, color: "text-amber-600", label: "Собран" },
+  completed: {
+    icon: CheckCircle,
+    color: "text-emerald-600",
+    label: "Завершён",
+  },
+  processing: { icon: Archive, color: "text-primary", label: "Обрабатывается" },
+  новый: { icon: Clock, color: "text-muted-foreground", label: "Новый" },
+  собран: { icon: Archive, color: "text-amber-600", label: "Собран" },
+  завершён: { icon: CheckCircle, color: "text-emerald-600", label: "Завершён" },
+  завершен: { icon: CheckCircle, color: "text-emerald-600", label: "Завершён" },
 };
 
 type Section =
@@ -57,7 +71,13 @@ type Section =
   | "profile"
   | "reviews";
 
-const MENU: { key: Section | "logout" | "admin"; label: string; icon: React.ElementType; href?: string }[] = [
+type MenuKey = Section | "logout" | "admin" | "management" | "employee-orders";
+const MENU: {
+  key: MenuKey;
+  label: string;
+  icon: React.ElementType;
+  href?: string;
+}[] = [
   { key: "orders", label: "Мои заказы", icon: Package },
   { key: "bonus", label: "Бонусы", icon: Star },
   { key: "referral", label: "Реферальная программа", icon: Gift },
@@ -66,8 +86,39 @@ const MENU: { key: Section | "logout" | "admin"; label: string; icon: React.Elem
   { key: "reviews", label: "Мои отзывы", icon: MessageSquare },
 ];
 
-export default function AccountPage() {
+function AccountPageContent() {
+  const searchParams = useSearchParams();
   const [orders, setOrders] = useState<any[]>([]);
+
+  async function cancelOrder(orderId: string | undefined) {
+    if (!orderId) {
+      toast.error("Неверный номер заказа");
+      return;
+    }
+
+    try {
+      const res = await fetch(
+        `/api/orders/${encodeURIComponent(orderId)}?id=${encodeURIComponent(orderId)}`,
+        {
+          method: "DELETE",
+        },
+      );
+      if (!res.ok) {
+        const data = await res.json().catch(() => null);
+        toast.error(
+          "Не удалось отменить заказ: " + (data?.error || res.statusText),
+        );
+        return;
+      }
+      const updated = await res.json();
+      setOrders((prev) =>
+        prev.map((order) => (order.id === updated.id ? updated : order)),
+      );
+      toast.success("Заказ отменён");
+    } catch (error) {
+      toast.error("Не удалось отменить заказ");
+    }
+  }
   const [section, setSection] = useState<Section>("orders");
   const [profileLoading, setProfileLoading] = useState(true);
   const [profile, setProfile] = useState<any | null>(null);
@@ -76,11 +127,38 @@ export default function AccountPage() {
   const [pemail, setPemail] = useState("");
   const [pbday, setPbday] = useState("");
   const { user, logout } = useAuth();
-  const [allProducts, setAllProducts] = useState<Product[]>([]);
+  const [favoriteProducts, setFavoriteProducts] = useState<Product[]>([]);
 
   const displayMenu = [
     ...MENU,
-    ...(user?.isAdmin ? [{ key: "admin", label: "Панель администратора", icon: UserCog, href: "/admin" }] : []),
+    ...(user?.role === "admin"
+      ? [
+          {
+            key: "admin",
+            label: "Панель администратора",
+            icon: UserCog,
+            href: "/admin",
+          },
+        ]
+      : user?.role === "manager"
+        ? [
+            {
+              key: "management",
+              label: "Управление",
+              icon: UserCog,
+              href: "/admin",
+            },
+          ]
+        : user?.role === "employee"
+          ? [
+              {
+                key: "employee-orders",
+                label: "Заказы",
+                icon: UserCog,
+                href: "/admin/orders",
+              },
+            ]
+          : []),
     ...(user ? [{ key: "logout", label: "Выйти", icon: LogOut }] : []),
   ];
 
@@ -104,7 +182,6 @@ export default function AccountPage() {
             loyaltyTiers[loyaltyTiers.indexOf(t) + 1].threshold),
     ) ?? loyaltyTiers[0];
   const { favorites } = useFavorites();
-  const favoriteProducts = allProducts.filter((p) => favorites.includes(p.id));
   const [copiedCode, setCopiedCode] = useState(false);
 
   // load orders for the demo user
@@ -125,13 +202,35 @@ export default function AccountPage() {
       .catch(() => setOrders([]));
   }, []);
 
-  // load all products for favorites
+  // parse ?tab= parameter
   useEffect(() => {
-    fetch("/api/products?limit=100") // Assuming the API supports a limit
-      .then((r) => r.json())
-      .then((data) => setAllProducts(data.products || []))
-      .catch(() => setAllProducts([]));
-  }, []);
+    const tab = searchParams.get("tab") as Section;
+    if (tab && ["orders", "bonus", "referral", "favorites", "profile", "reviews"].includes(tab)) {
+      setSection(tab);
+    }
+  }, [searchParams]);
+
+  // load favorites details dynamically
+  useEffect(() => {
+    if (user) {
+      fetch("/api/favorites?includeProducts=true")
+        .then((r) => r.json())
+        .then((data) => {
+          if (Array.isArray(data)) setFavoriteProducts(data);
+        })
+        .catch(() => {});
+    } else if (favorites.length > 0) {
+      const query = favorites.map((id) => `id=${encodeURIComponent(id)}`).join("&");
+      fetch(`/api/products?${query}&limit=100`)
+        .then((r) => r.json())
+        .then((data) => {
+          if (Array.isArray(data.products)) setFavoriteProducts(data.products);
+        })
+        .catch(() => {});
+    } else {
+      setFavoriteProducts([]);
+    }
+  }, [user, favorites]);
 
   useEffect(() => {
     let mounted = true;
@@ -145,7 +244,7 @@ export default function AccountPage() {
           if (mounted) setProfile(data);
           if (mounted) {
             setPname(data.name ?? "");
-            setPphone(data.phone ?? "");
+            setPphone(formatPhoneValue(data.phone ?? ""));
             setPemail(data.email ?? "");
             setPbday(data.birthday ?? "");
           }
@@ -161,6 +260,24 @@ export default function AccountPage() {
       mounted = false;
     };
   }, []);
+
+  function formatPhoneValue(value: string) {
+    const digits = value.replace(/\D/g, "").slice(0, 11);
+
+    if (!digits) return "";
+
+    const normalized = digits.startsWith("8") ? `7${digits.slice(1)}` : digits;
+
+    if (normalized.length <= 1) return "+7";
+    if (normalized.length <= 4) return `+7 (${normalized.slice(1)}`;
+    if (normalized.length <= 7)
+      return `+7 (${normalized.slice(1, 4)}) ${normalized.slice(4)}`;
+    if (normalized.length <= 9) {
+      return `+7 (${normalized.slice(1, 4)}) ${normalized.slice(4, 7)}-${normalized.slice(7)}`;
+    }
+
+    return `+7 (${normalized.slice(1, 4)}) ${normalized.slice(4, 7)}-${normalized.slice(7, 9)}-${normalized.slice(9, 11)}`;
+  }
 
   function copyReferral() {
     navigator.clipboard.writeText(
@@ -227,7 +344,11 @@ export default function AccountPage() {
                 );
               } else {
                 return (
-                  <button key={key} onClick={() => setSection(key as Section)} className={buttonClass}>
+                  <button
+                    key={key}
+                    onClick={() => setSection(key as Section)}
+                    className={buttonClass}
+                  >
                     <Icon className="size-4 shrink-0" />
                     {label}
                   </button>
@@ -244,8 +365,17 @@ export default function AccountPage() {
             <div className="flex flex-col gap-4">
               <h2 className="font-heading font-bold text-xl">Мои заказы</h2>
               {orders.map((order) => {
-                const cfg = STATUS_CONFIG[order.status as OrderStatus];
+                const normalizedStatus = String(order?.status ?? "")
+                  .trim()
+                  .toLowerCase();
+                const cfg = STATUS_CONFIG[normalizedStatus] ?? {
+                  icon: Clock,
+                  color: "text-muted-foreground",
+                  label: normalizedStatus || "Оформлен",
+                };
                 const StatusIcon = cfg.icon;
+                const displayOrderId = String(order.id).slice(0, 8);
+
                 return (
                   <div
                     key={order.id}
@@ -254,7 +384,7 @@ export default function AccountPage() {
                     <div className="flex items-start justify-between gap-3 mb-3 flex-wrap">
                       <div>
                         <p className="font-mono font-semibold text-sm">
-                          #{order.id}
+                          #{displayOrderId}
                         </p>
                         <p className="text-xs text-muted-foreground">
                           {formatDate(order.date)}
@@ -277,10 +407,13 @@ export default function AccountPage() {
                           className="flex justify-between text-muted-foreground"
                         >
                           <span>
-                            {item.name} · {item.volume} л · {item.quantity} шт.
+                            {item.name} · {item.volume} л ·{" "}
+                            {item.qty ?? item.quantity ?? 1} шт.
                           </span>
                           <span className="font-medium text-foreground">
-                            {formatPrice(item.price * item.quantity)}
+                            {formatPrice(
+                              item.price * (item.qty ?? item.quantity ?? 1),
+                            )}
                           </span>
                         </div>
                       ))}
@@ -300,7 +433,21 @@ export default function AccountPage() {
                             Отследить
                           </Button>
                         )}
-                        <Button size="sm">Повторить заказ</Button>
+                        {order.id &&
+                        (normalizedStatus === "new" ||
+                          normalizedStatus === "новый") ? (
+                          <Button
+                            variant="outline"
+                            size="sm"
+                            onClick={() => cancelOrder(order.id)}
+                          >
+                            Отменить заказ
+                          </Button>
+                        ) : null}
+                        {(normalizedStatus === "доставлен" ||
+                          normalizedStatus === "delivered") && (
+                          <Button size="sm">Повторить заказ</Button>
+                        )}
                       </div>
                     </div>
                   </div>
@@ -431,8 +578,8 @@ export default function AccountPage() {
                         {typeof value === "number"
                           ? value.toLocaleString("ru")
                           : value !== undefined && value !== null
-                          ? String(value)
-                          : "—"}
+                            ? String(value)
+                            : "—"}
                       </p>
                       <p className="text-sm text-muted-foreground mt-1">
                         {label}
@@ -467,13 +614,9 @@ export default function AccountPage() {
                 <h3 className="font-semibold mb-3">Условия программы</h3>
                 <ul className="flex flex-col gap-2 text-muted-foreground">
                   <li>
-                    • Друг зарегистрировался по вашей ссылке → +500 баллов вам
+                    • Друг зарегистрировался по вашей ссылке → +100 бонусов вам
                   </li>
-                  <li>• Друг сделал первый заказ → +2% от суммы заказа вам</li>
-                  <li>
-                    • Для мастеров и бригад — повышенные ставки реферального
-                    бонуса
-                  </li>
+                  <li>• Друг сделал первый заказ → +5% от суммы заказа вам (вычитается из комиссии Hzcompany)</li>
                   <li>• Нет ограничений по количеству приглашений</li>
                 </ul>
               </div>
@@ -533,8 +676,8 @@ export default function AccountPage() {
                     val = pname;
                     onChange = (e: any) => setPname(e.target.value);
                   } else if (id === "pphone") {
-                    val = pphone;
-                    onChange = (e: any) => setPphone(e.target.value);
+                    val = formatPhoneValue(pphone);
+                    onChange = (e: any) => setPphone(formatPhoneValue(e.target.value));
                   } else if (id === "pemail") {
                     val = pemail;
                     onChange = (e: any) => setPemail(e.target.value);
@@ -599,5 +742,13 @@ export default function AccountPage() {
         </div>
       </div>
     </div>
+  );
+}
+
+export default function AccountPage() {
+  return (
+    <Suspense fallback={<div>Загрузка...</div>}>
+      <AccountPageContent />
+    </Suspense>
   );
 }

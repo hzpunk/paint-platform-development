@@ -24,6 +24,13 @@ model User {
   reviews   Review[]
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
+  birthday  String?
+  referralCode String? @unique
+  referredById String?
+  referredBy   User?   @relation("Referral", fields: [referredById], references: [id])
+  referrals    User[]  @relation("Referral")
+  referralCount Int    @default(0)
+  referralBonus Int    @default(0)
 }
 
 model Order {
@@ -32,6 +39,7 @@ model Order {
   updatedAt DateTime   @updatedAt
   date      DateTime   @default(now())
   total     Float
+  commission Float?  @default(0)
   status    String
   items     OrderItem[]
   bonusEarned Int?
@@ -44,6 +52,7 @@ model Order {
   deliveryAddress String?
   paymentMethod String?
   promoCode String?
+  cancellationReason String?
   managerId String?
 }
 
@@ -95,6 +104,7 @@ model Product {
   slug            String       @unique
   description     String?
   price           Float
+  commission      Float?       @default(0)
   oldPrice        Float?
   stock           Int
   images          String[]

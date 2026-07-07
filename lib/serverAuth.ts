@@ -46,7 +46,10 @@ export async function clearAuthCookie() {
     path: "/",
     expires: new Date(0),
   });
-  return new Response(JSON.stringify({ message: "Logged out" }), { status: 200, headers: { "Content-Type": "application/json" } });
+  return new Response(JSON.stringify({ message: "Logged out" }), {
+    status: 200,
+    headers: { "Content-Type": "application/json" },
+  });
 }
 
 export async function getUserFromCookieHeader(cookieHeader: string | null) {
@@ -64,6 +67,18 @@ export async function getUserFromCookieHeader(cookieHeader: string | null) {
   if (!decoded || typeof decoded !== "object" || !decoded.userId) return null;
 
   const user = await prisma.user.findUnique({ where: { id: decoded.userId } });
+  if (user && !user.referralCode) {
+    const code = Math.random().toString(36).substring(2, 10).toUpperCase();
+    try {
+      const updated = await prisma.user.update({
+        where: { id: user.id },
+        data: { referralCode: code },
+      });
+      return updated;
+    } catch {
+      return user;
+    }
+  }
   return user;
 }
 
@@ -73,9 +88,12 @@ export async function getUserFromCookieHeader(cookieHeader: string | null) {
  * Response 401 при провале — вызывающий код делает: const err = await requireAdmin(req); if (err) return err;
  */
 export async function requireAdmin(req: Request): Promise<Response | null> {
-    const user = await getUserFromCookieHeader(req.headers.get('cookie'));
-    if (!user || user.role !== 'admin') {
-        return new Response(JSON.stringify({ error: 'Unauthorized' }), { status: 401, headers: { 'Content-Type': 'application/json' } });
-    }
-    return null;
+  const user = await getUserFromCookieHeader(req.headers.get("cookie"));
+  if (!user || user.role !== "admin") {
+    return new Response(JSON.stringify({ error: "Unauthorized" }), {
+      status: 401,
+      headers: { "Content-Type": "application/json" },
+    });
+  }
+  return null;
 }

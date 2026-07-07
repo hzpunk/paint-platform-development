@@ -29,8 +29,8 @@ const jetbrainsMono = JetBrains_Mono({
 export const metadata: Metadata = {
   metadataBase: new URL("https://kraskaprof.ru"),
   title: {
-    default: "КраскаПроф — лакокрасочные материалы",
-    template: "%s — КраскаПроф",
+    default: "КраскиУНАС — лакокрасочные материалы",
+    template: "%s — КраскиУНАС",
   },
   description:
     "Интернет-магазин красок, эмалей, грунтовок и спецсоставов. Колеровка в любой цвет, оплата при получении, бонусная программа.",
@@ -48,8 +48,8 @@ export const metadata: Metadata = {
   openGraph: {
     type: "website",
     locale: "ru_RU",
-    siteName: "КраскаПроф",
-    title: "КраскаПроф — лакокрасочные материалы",
+    siteName: "КраскиУНАС",
+    title: "КраскиУНАС — лакокрасочные материалы",
     description:
       "Сертифицированные краски и ЛКМ. Колеровка, оплата при получении.",
   },

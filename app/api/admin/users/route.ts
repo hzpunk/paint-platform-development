@@ -33,7 +33,10 @@ export async function POST(req: Request) {
   const { email, name, password, role } = body;
 
   if (!email || !password) {
-    return NextResponse.json({ error: "email and password are required" }, { status: 400 });
+    return NextResponse.json(
+      { error: "email and password are required" },
+      { status: 400 },
+    );
   }
 
   const hashedPassword = await hashPassword(password);

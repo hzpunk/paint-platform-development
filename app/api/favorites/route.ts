@@ -11,6 +11,31 @@ export async function GET(req: Request) {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   }
 
+  const { searchParams } = new URL(req.url);
+  const includeProducts = searchParams.get("includeProducts") === "true";
+
+  if (includeProducts) {
+    const favorites = await prisma.favorite.findMany({
+      where: { userId: user.id },
+    });
+
+    const productIds = favorites.map((f) => f.productId);
+    const products = await prisma.product.findMany({
+      where: {
+        OR: [
+          { id: { in: productIds } },
+          { slug: { in: productIds } },
+        ],
+      },
+      include: {
+        category: true,
+        brand: true,
+      },
+    });
+
+    return NextResponse.json(products);
+  }
+
   const favorites = await prisma.favorite.findMany({
     where: { userId: user.id },
     select: { productId: true },

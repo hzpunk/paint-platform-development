@@ -21,7 +21,7 @@ export default function BlogPage() {
       {/* Шапка блога */}
       <div className="mb-10 text-center">
         <h1 className="font-heading text-4xl font-extrabold tracking-tight md:text-5xl text-primary">
-          Блог КраскаПроф
+          Блог КраскиУНАС
         </h1>
         <p className="mt-4 max-w-xl mx-auto text-lg text-muted-foreground leading-relaxed">
           Полезные советы, инструкции по нанесению, обзоры материалов и свежие тренды в дизайне интерьеров.

@@ -16,8 +16,8 @@ const STORAGE_KEY = "kraskaprof.favorites.v1";
 
 interface FavoritesContextValue {
   favorites: string[];
-  isFavorite: (slug: string) => boolean;
-  toggle: (slug: string) => void;
+  isFavorite: (productId: string, slug?: string) => boolean;
+  toggle: (productId: string) => void;
 }
 
 const FavoritesContext = createContext<FavoritesContextValue | null>(null);
@@ -55,27 +55,27 @@ export function FavoritesProvider({ children }: { children: ReactNode }) {
     };
   }, [user]);
 
-  const toggle = useCallback((slug: string) => {
+  const toggle = useCallback((productId: string) => {
     setFavorites((prev) => {
-      const next = prev.includes(slug)
-        ? prev.filter((s) => s !== slug)
-        : [...prev, slug];
+      const next = prev.includes(productId)
+        ? prev.filter((id) => id !== productId)
+        : [...prev, productId];
       try {
         localStorage.setItem(STORAGE_KEY, JSON.stringify(next));
       } catch {}
       // sync with server when logged in
       if (user) {
-        if (prev.includes(slug)) {
+        if (prev.includes(productId)) {
           fetch("/api/favorites", {
             method: "DELETE",
             headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({ productId: slug }),
+            body: JSON.stringify({ productId }),
           });
         } else {
           fetch("/api/favorites", {
             method: "POST",
             headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({ productId: slug }),
+            body: JSON.stringify({ productId }),
           });
         }
       }
@@ -86,7 +86,8 @@ export function FavoritesProvider({ children }: { children: ReactNode }) {
   const value = useMemo<FavoritesContextValue>(
     () => ({
       favorites,
-      isFavorite: (slug: string) => favorites.includes(slug),
+      isFavorite: (productId: string, slug?: string) =>
+        favorites.includes(productId) || (slug ? favorites.includes(slug) : false),
       toggle,
     }),
     [favorites, toggle],

@@ -7,7 +7,7 @@ import type { Metadata } from 'next'
 
 export const metadata: Metadata = {
   title: 'Контакты',
-  description: 'Контакты КраскаПроф: телефон, email, адрес. Реквизиты юридического лица.',
+  description: 'Контакты КраскиУНАС: телефон, email, адрес. Реквизиты юридического лица.',
 }
 
 export default function ContactsPage() {
@@ -36,7 +36,7 @@ export default function ContactsPage() {
               {
                 icon: MapPin,
                 title: 'Адрес офиса/склада',
-                content: <p>123056, г. Москва, ул. Красочная, д. 15, стр. 2</p>,
+                content: <p>МКАД, 41-й километр, 4, стр. 27, Москва Ж12/5</p>,
                 note: null,
               },
               {
@@ -69,11 +69,11 @@ export default function ContactsPage() {
           <div className="rounded-lg border border-border bg-card p-5 text-sm">
             <h2 className="font-heading font-bold mb-3">Реквизиты юридического лица</h2>
             <div className="grid gap-1.5 text-muted-foreground">
-              <p><span className="font-medium text-foreground">Полное наименование:</span> ООО «КраскаПроф»</p>
+              <p><span className="font-medium text-foreground">Полное наименование:</span> ООО «КраскиУНАС»</p>
               <p><span className="font-medium text-foreground">ОГРН:</span> 1157746000000</p>
               <p><span className="font-medium text-foreground">ИНН:</span> 7701234567</p>
               <p><span className="font-medium text-foreground">КПП:</span> 770101001</p>
-              <p><span className="font-medium text-foreground">Юридический адрес:</span> 123056, г. Москва, ул. Красочная, д. 15, стр. 2</p>
+              <p><span className="font-medium text-foreground">Юридический адрес:</span> МКАД, 41-й километр, 4, стр. 27, Москва Ж12/5</p>
               <p><span className="font-medium text-foreground">Расчётный счёт:</span> 40702810000000000000</p>
               <p><span className="font-medium text-foreground">Банк:</span> ПАО Сбербанк</p>
               <p><span className="font-medium text-foreground">БИК:</span> 044525225</p>

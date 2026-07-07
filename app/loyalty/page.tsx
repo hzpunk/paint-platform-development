@@ -7,7 +7,7 @@ import { cn } from '@/lib/utils'
 
 export const metadata: Metadata = {
   title: 'Программа лояльности',
-  description: 'Бонусная программа КраскаПроф: 4 уровня, до 10% баллами с каждой покупки, реферальная программа.',
+  description: 'Бонусная программа КраскиУНАС: 4 уровня, до 10% баллами с каждой покупки, реферальная программа.',
 }
 
 export default function LoyaltyPage() {

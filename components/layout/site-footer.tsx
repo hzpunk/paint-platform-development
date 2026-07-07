@@ -1,6 +1,7 @@
 import Link from 'next/link'
 import { Paintbrush, Send, Phone, Mail, MapPin, Clock } from 'lucide-react'
-import { categories } from '@/lib/data'
+import { categories as mockCategories } from '@/lib/data'
+import prisma from '@/lib/db'
 
 const infoLinks = [
   { href: '/colormixing', label: 'Колеровка' },
@@ -16,7 +17,18 @@ const legalLinks = [
   { href: '/loyalty-terms', label: 'Условия программы лояльности' },
 ]
 
-export function SiteFooter() {
+export async function SiteFooter() {
+  let categories = mockCategories;
+  try {
+    const dbCategories = await prisma.category.findMany({
+      orderBy: { name: 'asc' }
+    });
+    if (dbCategories && dbCategories.length > 0) {
+      categories = dbCategories as any[];
+    }
+  } catch (error) {
+    console.error("Failed to fetch categories for footer:", error);
+  }
   return (
     <footer className="bg-primary text-primary-foreground">
       {/* Акцентная полоса */}
@@ -30,7 +42,7 @@ export function SiteFooter() {
                 <Paintbrush className="size-5" />
               </span>
               <span className="font-heading text-xl font-extrabold tracking-tight">
-                Краска<span className="text-accent">Проф</span>
+                Краски<span className="text-accent">УНАС</span>
               </span>
             </Link>
             <p className="mt-5 max-w-sm text-sm leading-relaxed text-primary-foreground/70">
@@ -119,7 +131,7 @@ export function SiteFooter() {
               </li>
               <li className="flex items-start gap-2.5">
                 <MapPin className="mt-0.5 size-4 shrink-0 text-accent" />
-                <span>г. Москва, ул. Красочная, д. 15, стр. 2</span>
+                <span>МКАД, 41-й километр, 4, стр. 27, Москва Ж12/5</span>
               </li>
             </ul>
           </div>
@@ -128,8 +140,8 @@ export function SiteFooter() {
         <div className="mt-12 border-t border-primary-foreground/15 pt-6 text-xs text-primary-foreground/60">
           <div className="flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
             <div className="space-y-1">
-              <p>ООО «КраскаПроф» · ИНН 7701234567 · ОГРН 1157746000000</p>
-              <p>123056, г. Москва, ул. Красочная, д. 15, стр. 2</p>
+              <p>ООО «КраскиУНАС» · ИНН 7701234567 · ОГРН 1157746000000</p>
+              <p>МКАД, 41-й километр, 4, стр. 27, Москва Ж12/5</p>
             </div>
             <ul className="flex flex-wrap gap-x-4 gap-y-1">
               {legalLinks.map((l) => (
@@ -145,7 +157,7 @@ export function SiteFooter() {
             </ul>
           </div>
           <p className="mt-4">
-            © {new Date().getFullYear()} КраскаПроф. Все права защищены. Цены на сайте
+            © {new Date().getFullYear()} КраскиУНАС. Все права защищены. Цены на сайте
             не являются публичной офертой.
           </p>
         </div>

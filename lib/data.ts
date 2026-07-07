@@ -9,7 +9,7 @@ import type {
   OrderItem,
 } from "./types";
 
-export const categories: Omit<Category, 'products'>[] = [
+export const categories: Omit<Category, "products">[] = [
   {
     id: "clx12d01q000008l2h2g3f8y9",
     slug: "interior",
@@ -54,7 +54,7 @@ export const categories: Omit<Category, 'products'>[] = [
   },
 ];
 
-export const brands: Omit<Brand, 'products'>[] = [
+export const brands: Omit<Brand, "products">[] = [
   { id: "clx12d01q000608l2f2g3m4o0", slug: "tikkurila", name: "Tikkurila" },
   { id: "clx12d01q000708l2g2g3n4p1", slug: "dulux", name: "Dulux" },
   { id: "clx12d01q000808l2h2g3o4q2", slug: "caparol", name: "Caparol" },
@@ -186,10 +186,12 @@ export const loyaltyTiers: LoyaltyTier[] = [
   },
 ];
 
-export { products, getProductBySlug } from './data.js'
+export { products, getProductBySlug } from "./data.js";
 
 // Демонстрационные заказы для личного кабинета.
-export const demoOrders: (Omit<Order, 'items'> & { items: Omit<OrderItem, 'id'>[] })[] = [
+export const demoOrders: (Omit<Order, "items"> & {
+  items: Omit<OrderItem, "id">[];
+})[] = [
   {
     id: "2026-004821",
     createdAt: new Date("2026-06-18"),

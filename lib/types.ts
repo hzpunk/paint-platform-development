@@ -1,4 +1,10 @@
-import { Product as PrismaProduct, Category as PrismaCategory, Brand as PrismaBrand, Review as PrismaReview, Order as PrismaOrder } from '@prisma/client'
+import {
+  Product as PrismaProduct,
+  Category as PrismaCategory,
+  Brand as PrismaBrand,
+  Review as PrismaReview,
+  Order as PrismaOrder,
+} from "@prisma/client";
 
 /** Тип краски по составу — используется в фильтрах каталога. */
 export type PaintType =
@@ -36,15 +42,19 @@ export interface ProductSpecs {
   storage: string;
 }
 
-export interface Product extends Omit<PrismaProduct, 'reviews' | 'specs' | 'packaging' | 'colors'> {
+export interface Product extends Omit<
+  PrismaProduct,
+  "reviews" | "specs" | "packaging" | "colors"
+> {
   categoryId: string;
   brandId: string;
-  category: Omit<PrismaCategory, 'products'>;
-  brand: Omit<PrismaBrand, 'products'> | string;
+  category: Omit<PrismaCategory, "products">;
+  brand: Omit<PrismaBrand, "products"> | string;
   inStock: boolean;
   packaging: Packaging[];
-  colors: { hex: string; name: string }[];
+  colors: { hex: string; name: string; stock?: number | null }[];
   specs: ProductSpecs;
+  commission?: number | null;
   reviews?: Review[] | null;
   badges?: ProductBadge[];
   oldPrice?: number | null;
@@ -53,7 +63,7 @@ export interface Product extends Omit<PrismaProduct, 'reviews' | 'specs' | 'pack
 }
 
 export interface Category extends PrismaCategory {
-  products?: Product[] | null
+  products?: Product[] | null;
 }
 
 export interface Review {

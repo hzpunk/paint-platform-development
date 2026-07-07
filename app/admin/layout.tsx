@@ -1,21 +1,16 @@
-import "./admin.css";
 import { ReactNode } from "react";
-import { AdminSidebar } from "@/components/admin/sidebar";
-import { AdminHeader } from "@/components/admin/header";
+import { AdminSidebar } from "../../components/admin-sidebar";
 
 export const metadata = {
-  title: "Админка — КраскаПроф",
+  title: "Админка — КраскиУНАС",
 };
 
 export default function AdminLayout({ children }: { children: ReactNode }) {
   return (
-    <div className="min-h-screen bg-[radial-gradient(circle_at_top_left,_rgba(34,197,94,0.08),_transparent_32%),linear-gradient(135deg,_rgba(255,255,255,0.02),_transparent)] text-foreground">
-      <div className="flex">
+    <div className="min-h-screen bg-background text-foreground">
+      <div className="lg:flex">
         <AdminSidebar />
-        <div className="flex-1">
-          <AdminHeader />
-          <main className="p-6 lg:p-8">{children}</main>
-        </div>
+        <main className="flex-1 p-6 lg:p-8">{children}</main>
       </div>
     </div>
   );

@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { CheckCircle, ChevronRight, Store } from "lucide-react";
@@ -10,15 +10,36 @@ import { Label } from "@/components/ui/label";
 import { Checkbox } from "@/components/ui/checkbox";
 import { PaintCan } from "@/components/product/paint-can";
 import { useCart } from "@/components/cart/cart-provider";
+import { useAuth } from "@/components/auth/auth-provider";
 import { formatPrice } from "@/lib/format";
 import { toast } from "sonner";
+// Commission is not calculated on checkout page — it's embedded in prices
 import { cn } from "@/lib/utils";
 
 type Step = 1 | 2;
 
+function formatPhoneValue(value: string) {
+  const digits = value.replace(/\D/g, "").slice(0, 11);
+
+  if (!digits) return "";
+
+  const normalized = digits.startsWith("8") ? `7${digits.slice(1)}` : digits;
+
+  if (normalized.length <= 1) return "+7";
+  if (normalized.length <= 4) return `+7 (${normalized.slice(1)}`;
+  if (normalized.length <= 7)
+    return `+7 (${normalized.slice(1, 4)}) ${normalized.slice(4)}`;
+  if (normalized.length <= 9) {
+    return `+7 (${normalized.slice(1, 4)}) ${normalized.slice(4, 7)}-${normalized.slice(7)}`;
+  }
+
+  return `+7 (${normalized.slice(1, 4)}) ${normalized.slice(4, 7)}-${normalized.slice(7, 9)}-${normalized.slice(9, 11)}`;
+}
+
 export default function CheckoutPage() {
   const router = useRouter();
   const { items, subtotal, totalBonus, clear } = useCart();
+  const { user } = useAuth();
   const [step, setStep] = useState<Step>(1);
 
   // Форма контактов
@@ -30,7 +51,37 @@ export default function CheckoutPage() {
   const [agreedPrivacy, setAgreedPrivacy] = useState(false);
   const [loading, setLoading] = useState(false);
 
-  const total = subtotal;
+  // Промокоды и бонусы
+  const [promoCode, setPromoCode] = useState("");
+  const [bonusUsed, setBonusUsed] = useState(0);
+
+  const PROMO_CODES: Record<string, number> = {
+    PROF10: 10,
+    PAINT15: 15,
+  };
+
+  const discount = promoCode
+    ? Math.round((subtotal * (PROMO_CODES[promoCode.toUpperCase()] || 0)) / 100)
+    : 0;
+
+  const total = subtotal - discount - bonusUsed;
+  const earnedBonus = bonusUsed > 0 ? 0 : totalBonus;
+
+  useEffect(() => {
+    if (typeof window !== "undefined") {
+      const params = new URLSearchParams(window.location.search);
+      setPromoCode(params.get("promo") || "");
+      setBonusUsed(Number(params.get("bonus") || 0));
+    }
+  }, []);
+
+  useEffect(() => {
+    if (!user) return;
+
+    setName((current) => current || user.name || "");
+    setPhone((current) => current || formatPhoneValue(user.phone || ""));
+    setEmail((current) => current || user.email || "");
+  }, [user]);
 
   function validateStep1(): boolean {
     if (!name.trim() || !phone.trim()) {
@@ -53,13 +104,18 @@ export default function CheckoutPage() {
       phone,
       email,
       items: items.map((it) => ({
+        productId: it.productId,
         name: it.name,
         volume: it.volume,
         price: it.price,
         quantity: it.quantity,
         sku: it.sku,
+        color: it.color ?? null,
       })),
       total,
+      subtotal,
+      promoCode: promoCode || null,
+      bonusUsed,
     };
 
     setLoading(true);
@@ -164,8 +220,12 @@ export default function CheckoutPage() {
                     <Input
                       id="phone"
                       type="tel"
+                      inputMode="tel"
+                      autoComplete="tel"
                       value={phone}
-                      onChange={(e) => setPhone(e.target.value)}
+                      onChange={(e) =>
+                        setPhone(formatPhoneValue(e.target.value))
+                      }
                       placeholder="+7 900 000-00-00"
                       className="mt-1"
                     />
@@ -175,6 +235,7 @@ export default function CheckoutPage() {
                     <Input
                       id="email"
                       type="email"
+                      autoComplete="email"
                       value={email}
                       onChange={(e) => setEmail(e.target.value)}
                       placeholder="mail@example.com"
@@ -191,7 +252,7 @@ export default function CheckoutPage() {
                 </h2>
                 <p className="text-sm font-medium">Самовывоз — Бесплатно</p>
                 <p className="text-sm text-muted-foreground mt-1">
-                  Адрес: г. Москва, ул. Красочная, д. 15, стр. 2 (Пн–Пт
+                  Адрес: МКАД, 41-й километр, 4, стр. 27, Москва Ж12/5 (Пн–Пт
                   9:00–21:00, Сб 10:00–18:00)
                 </p>
                 <p className="text-sm text-muted-foreground mt-1">
@@ -223,8 +284,39 @@ export default function CheckoutPage() {
                       key={`${item.sku}-${item.color}`}
                       className="flex gap-3 rounded-lg border border-border bg-card p-3"
                     >
-                      <div className="w-12 h-12 shrink-0">
-                        <PaintCan color={item.image} className="w-12 h-12" />
+                      <div className="w-12 h-12 shrink-0 overflow-hidden rounded-md border border-border/70 bg-muted/40">
+                        {typeof item.image === "string" &&
+                        /^(https?:|\/|data:image)/i.test(item.image) ? (
+                          <img
+                            src={item.image}
+                            alt={item.name}
+                            className="h-full w-full object-cover"
+                            onError={(event) => {
+                              const target = event.currentTarget;
+                              target.style.display = "none";
+                              const fallback =
+                                target.parentElement?.querySelector(
+                                  "[data-fallback]",
+                                ) as HTMLElement | null;
+                              if (fallback) fallback.style.display = "flex";
+                            }}
+                          />
+                        ) : null}
+                        <div
+                          data-fallback
+                          className={cn(
+                            "flex h-full w-full items-center justify-center",
+                            typeof item.image === "string" &&
+                              /^(https?:|\/|data:image)/i.test(item.image)
+                              ? "hidden"
+                              : "flex",
+                          )}
+                        >
+                          <PaintCan
+                            color={item.image || "#E5E7EB"}
+                            className="h-full w-full"
+                          />
+                        </div>
                       </div>
                       <div className="flex-1 min-w-0 text-sm">
                         <p className="font-medium line-clamp-1">{item.name}</p>
@@ -251,7 +343,7 @@ export default function CheckoutPage() {
                   <span className="text-muted-foreground">
                     Способ получения:
                   </span>{" "}
-                  Самовывоз (г. Москва, ул. Красочная, д. 15, стр. 2)
+                  Самовывоз (МКАД, 41-й километр, 4, стр. 27, Москва Ж12/5)
                 </p>
                 <button
                   onClick={() => setStep(1)}
@@ -349,6 +441,18 @@ export default function CheckoutPage() {
                 <span>Товары ({items.length})</span>
                 <span>{formatPrice(subtotal)}</span>
               </div>
+              {discount > 0 && (
+                <div className="flex justify-between text-success">
+                  <span>Скидка ({promoCode})</span>
+                  <span>−{formatPrice(discount)}</span>
+                </div>
+              )}
+              {bonusUsed > 0 && (
+                <div className="flex justify-between text-success">
+                  <span>Бонусы</span>
+                  <span>−{formatPrice(bonusUsed)}</span>
+                </div>
+              )}
               <div className="flex justify-between">
                 <span>Получение</span>
                 <span>Самовывоз (Бесплатно)</span>
@@ -358,9 +462,15 @@ export default function CheckoutPage() {
                 <span>{formatPrice(total)}</span>
               </div>
             </div>
-            <p className="mt-3 text-xs text-success">
-              +{totalBonus} бонусных баллов
-            </p>
+             {earnedBonus > 0 ? (
+               <p className="mt-3 text-xs text-success">
+                 +{earnedBonus} бонусных баллов
+               </p>
+             ) : (
+               <p className="mt-3 text-xs text-muted-foreground">
+                 Баллы не начисляются при оплате бонусами
+               </p>
+             )}
             <p className="mt-2 text-xs text-muted-foreground">
               Самовывоз доступен в рабочие часы магазина
             </p>

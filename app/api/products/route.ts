@@ -25,6 +25,15 @@ export async function GET(req: Request) {
     // Формируем условия WHERE
     const where: any = {};
 
+    // Фильтр по списку ID
+    const ids = searchParams.getAll('id');
+    if (ids.length > 0) {
+      where.OR = [
+        { id: { in: ids } },
+        { slug: { in: ids } },
+      ];
+    }
+
     // Только товары в наличии
     if (onlyInStock) {
       where.stock = { gt: 0 };

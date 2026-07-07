@@ -1,72 +1,96 @@
-'use client'
+"use client";
 
-import { useState } from 'react'
-import Link from 'next/link'
-import { Trash2, Heart, ArrowRight, ShoppingCart, Tag, Gift } from 'lucide-react'
-import { Button } from '@/components/ui/button'
-import { Input } from '@/components/ui/input'
-import { PaintCan } from '@/components/product/paint-can'
-import { useCart } from '@/components/cart/cart-provider'
-import { formatPrice } from '@/lib/format'
-import { cn } from '@/lib/utils'
-import { useFavorites } from '@/components/favorites/favorites-provider'
-import { products } from '@/lib/data'
+import { useState } from "react";
+import Link from "next/link";
+import {
+  Trash2,
+  Heart,
+  ArrowRight,
+  ShoppingCart,
+  Tag,
+  Gift,
+} from "lucide-react";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { PaintCan } from "@/components/product/paint-can";
+import { useCart } from "@/components/cart/cart-provider";
+import { useAuth } from "@/components/auth/auth-provider";
+import { formatPrice } from "@/lib/format";
+import { cn } from "@/lib/utils";
+import { useFavorites } from "@/components/favorites/favorites-provider";
+import { isRenderableImage } from "@/lib/cart";
 
 // Промокоды-заглушки (на проде заменить API)
 const PROMO_CODES: Record<string, number> = {
-  'PROF10': 10,
-  'PAINT15': 15,
-}
+  PROF10: 10,
+  PAINT15: 15,
+};
 
 export default function CartPage() {
-  const { items, subtotal, totalBonus, removeItem, setQuantity, keyOf } = useCart()
-  const { toggle } = useFavorites()
-  const [promo, setPromo] = useState('')
-  const [promoApplied, setPromoApplied] = useState<number | null>(null)
-  const [promoError, setPromoError] = useState('')
-  const [bonusToUse, setBonusToUse] = useState(0)
-  const userBonusBalance = 1250 // заглушка — на проде из сессии
+  const { items, subtotal, totalBonus, removeItem, setQuantity, keyOf } =
+    useCart();
+  const { toggle, isFavorite } = useFavorites();
+  const { user } = useAuth();
+  const [promo, setPromo] = useState("");
+  const [promoApplied, setPromoApplied] = useState<number | null>(null);
+  const [promoError, setPromoError] = useState("");
+  const [bonusToUse, setBonusToUse] = useState(0);
+  const userBonusBalance = user?.bonusBalance ?? 0;
 
-  const discount = promoApplied ? Math.round(subtotal * promoApplied / 100) : 0
-  const bonusDiscount = Math.min(bonusToUse, subtotal - discount)
-  const total = subtotal - discount - bonusDiscount
+  const discount = promoApplied
+    ? Math.round((subtotal * promoApplied) / 100)
+    : 0;
+
+  const maxBonusAllowed = Math.min(
+    userBonusBalance,
+    Math.round((subtotal - discount) * 0.2),
+  );
+
+  const bonusDiscount = Math.min(bonusToUse, maxBonusAllowed);
+  const total = subtotal - discount - bonusDiscount;
+  const earnedBonus = bonusDiscount > 0 ? 0 : totalBonus;
 
   function applyPromo() {
-    const code = promo.trim().toUpperCase()
-    const pct = PROMO_CODES[code]
+    const code = promo.trim().toUpperCase();
+    const pct = PROMO_CODES[code];
     if (pct) {
-      setPromoApplied(pct)
-      setPromoError('')
+      setPromoApplied(pct);
+      setPromoError("");
     } else {
-      setPromoApplied(null)
-      setPromoError('Промокод не найден или уже использован')
+      setPromoApplied(null);
+      setPromoError("Промокод не найден или уже использован");
     }
   }
 
   if (items.length === 0) {
     return (
-      <div className="mx-auto max-w-[1280px] px-4 py-20 text-center md:px-6">
+      <div className="mx-auto max-w-7xl px-4 py-20 text-center md:px-6">
         <ShoppingCart className="mx-auto mb-4 size-16 text-muted-foreground" />
         <h1 className="font-heading text-2xl font-bold mb-2">Корзина пуста</h1>
-        <p className="text-muted-foreground mb-6">Добавьте товары из каталога</p>
+        <p className="text-muted-foreground mb-6">
+          Добавьте товары из каталога
+        </p>
         <Button render={<Link href="/catalog" />}>Перейти в каталог</Button>
       </div>
-    )
+    );
   }
 
-  // Рекомендуемые (не в корзине)
-  const cartSlugs = new Set(items.map((i) => i.slug))
-  const recommended = products.filter((p) => !cartSlugs.has(p.slug)).slice(0, 4)
-
   return (
-    <div className="mx-auto max-w-[1280px] px-4 py-8 md:px-6">
-      <h1 className="mb-6 font-heading text-2xl font-bold md:text-3xl">Корзина</h1>
+    <div className="mx-auto max-w-7xl px-4 py-8 md:px-6">
+      <h1 className="mb-6 font-heading text-2xl font-bold md:text-3xl">
+        Корзина
+      </h1>
 
       <div className="grid gap-8 lg:grid-cols-3">
         {/* Список товаров */}
         <div className="lg:col-span-2 flex flex-col gap-4">
           {items.map((item) => {
-            const key = keyOf(item)
+            const key = keyOf(item);
+            const brandLabel =
+              typeof item.brand === "string"
+                ? item.brand
+                : (item.brand?.name ?? "");
+            const isLiked = isFavorite(item.productId, item.slug);
             return (
               <div
                 key={key}
@@ -74,7 +98,18 @@ export default function CartPage() {
               >
                 {/* Изображение */}
                 <div className="shrink-0 w-20 h-20 rounded-md overflow-hidden bg-muted/30">
-                  <PaintCan color={item.image} className="w-20 h-20" />
+                  {isRenderableImage(item.image) ? (
+                    <img
+                      src={item.image}
+                      alt={item.name}
+                      className="h-full w-full object-cover"
+                    />
+                  ) : (
+                    <PaintCan
+                      color={item.image || item.color || "#E5E5E0"}
+                      className="w-20 h-20"
+                    />
+                  )}
                 </div>
 
                 {/* Инфо */}
@@ -86,25 +121,40 @@ export default function CartPage() {
                     {item.name}
                   </Link>
                   <p className="mt-0.5 text-xs text-muted-foreground">
-                    {item.brand} · {item.volume} л
-                    {item.color ? ` · ${item.color}` : ''}
+                    {brandLabel} · {item.volume} л
+                    {item.color ? ` · ${item.color}` : ""}
                   </p>
-                  <p className="mt-0.5 font-mono text-xs text-muted-foreground">{item.sku}</p>
+                  {item.color ? (
+                    <div className="mt-2 flex items-center gap-2">
+                      <span
+                        className="size-3.5 rounded-full border border-border/60"
+                        style={{ backgroundColor: item.color || "#f1f5f9" }}
+                      />
+                      <span className="text-xs font-medium text-foreground">
+                        {item.color}
+                      </span>
+                    </div>
+                  ) : null}
+                  <p className="mt-0.5 font-mono text-xs text-muted-foreground">
+                    {item.sku}
+                  </p>
 
                   <div className="mt-3 flex items-center justify-between gap-3 flex-wrap">
                     {/* Количество */}
                     <div className="flex items-center rounded-md border border-border">
                       <button
                         onClick={() => {
-                          if (item.quantity === 1) removeItem(key)
-                          else setQuantity(key, item.quantity - 1)
+                          if (item.quantity === 1) removeItem(key);
+                          else setQuantity(key, item.quantity - 1);
                         }}
                         className="flex size-8 items-center justify-center hover:bg-muted"
                         aria-label="Уменьшить"
                       >
                         −
                       </button>
-                      <span className="w-10 text-center text-sm tabular-nums">{item.quantity}</span>
+                      <span className="w-10 text-center text-sm tabular-nums">
+                        {item.quantity}
+                      </span>
                       <button
                         onClick={() => setQuantity(key, item.quantity + 1)}
                         className="flex size-8 items-center justify-center hover:bg-muted"
@@ -115,7 +165,9 @@ export default function CartPage() {
                     </div>
 
                     {/* Цена */}
-                    <span className="font-bold">{formatPrice(item.price * item.quantity)}</span>
+                    <span className="font-bold">
+                      {formatPrice(item.price * item.quantity)}
+                    </span>
                   </div>
                 </div>
 
@@ -133,15 +185,22 @@ export default function CartPage() {
                   <Button
                     variant="ghost"
                     size="icon"
-                    className="size-8 text-muted-foreground hover:text-primary"
+                    className={cn(
+                      "size-8 text-muted-foreground hover:text-primary",
+                      isLiked && "text-destructive hover:text-destructive",
+                    )}
                     onClick={() => toggle(item.productId)}
-                    aria-label="В избранное"
+                    aria-label={
+                      isLiked ? "Убрать из избранного" : "Добавить в избранное"
+                    }
                   >
-                    <Heart className="size-4" />
+                    <Heart
+                      className={cn("size-4", isLiked && "fill-destructive")}
+                    />
                   </Button>
                 </div>
               </div>
-            )
+            );
           })}
         </div>
 
@@ -166,7 +225,9 @@ export default function CartPage() {
                   Применить
                 </Button>
               </div>
-              {promoError && <p className="mt-1 text-xs text-destructive">{promoError}</p>}
+              {promoError && (
+                <p className="mt-1 text-xs text-destructive">{promoError}</p>
+              )}
               {promoApplied && (
                 <p className="mt-1 text-xs text-success">
                   ✓ Скидка {promoApplied}% применена
@@ -178,26 +239,54 @@ export default function CartPage() {
             <div>
               <p className="mb-2 text-sm font-medium flex items-center gap-2">
                 <Gift className="size-4" /> Бонусные баллы
-                <span className="ml-auto text-xs text-muted-foreground">Баланс: {userBonusBalance}</span>
+                <span className="ml-auto text-xs text-muted-foreground">
+                  Баланс: {userBonusBalance}
+                </span>
               </p>
-              <input
-                type="range"
-                min={0}
-                max={userBonusBalance}
-                step={50}
-                value={bonusToUse}
-                onChange={(e) => setBonusToUse(Number(e.target.value))}
-                className="w-full accent-primary"
-              />
-              <p className="mt-1 text-xs text-muted-foreground">
-                Применить: {bonusToUse} баллов (−{formatPrice(bonusToUse)})
+              {maxBonusAllowed > 0 ? (
+                <div className="flex items-center gap-3 rounded-lg border border-border/60 bg-muted/10 p-3">
+                  <input
+                    type="checkbox"
+                    id="use-bonuses"
+                    checked={bonusDiscount > 0}
+                    onChange={(e) => {
+                      setBonusToUse(e.target.checked ? maxBonusAllowed : 0);
+                    }}
+                    className="size-4 accent-primary cursor-pointer"
+                  />
+                  <label
+                    htmlFor="use-bonuses"
+                    className="text-sm font-medium cursor-pointer flex-1"
+                  >
+                    Списать доступные бонусы: {maxBonusAllowed} баллов (−{formatPrice(maxBonusAllowed)})
+                  </label>
+                </div>
+              ) : (
+                <p className="text-xs text-muted-foreground">
+                  Нет доступных бонусов для списания
+                </p>
+              )}
+              <p className="mt-2 text-[11px] text-muted-foreground">
+                Бонусами можно оплатить не более 20% от суммы заказа. При списании бонусов новые баллы за заказ не начисляются.
               </p>
             </div>
 
             <div className="flex flex-col gap-2 text-sm border-t border-border pt-4">
               <Row label="Товары" value={formatPrice(subtotal)} />
-              {discount > 0 && <Row label={`Скидка (${promoApplied}%)`} value={`−${formatPrice(discount)}`} className="text-success" />}
-              {bonusDiscount > 0 && <Row label="Бонусы" value={`−${formatPrice(bonusDiscount)}`} className="text-success" />}
+              {discount > 0 && (
+                <Row
+                  label={`Скидка (${promoApplied}%)`}
+                  value={`−${formatPrice(discount)}`}
+                  className="text-success"
+                />
+              )}
+              {bonusDiscount > 0 && (
+                <Row
+                  label="Бонусы"
+                  value={`−${formatPrice(bonusDiscount)}`}
+                  className="text-success"
+                />
+              )}
               <Row label="Получение" value="Самовывоз (Бесплатно)" />
             </div>
 
@@ -206,14 +295,24 @@ export default function CartPage() {
               <span className="font-bold text-2xl">{formatPrice(total)}</span>
             </div>
 
-            <p className="text-xs text-success">
-              +{totalBonus} баллов за этот заказ
-            </p>
+            {earnedBonus > 0 ? (
+              <p className="text-xs text-success">
+                +{earnedBonus} баллов за этот заказ
+              </p>
+            ) : (
+              <p className="text-xs text-muted-foreground">
+                Баллы не начисляются при оплате бонусами
+              </p>
+            )}
 
             <Button
               size="lg"
               className="w-full gap-2"
-              render={<Link href="/checkout" />}
+              render={
+                <Link
+                  href={`/checkout?promo=${promoApplied ? promo.trim() : ""}&bonus=${bonusDiscount}`}
+                />
+              }
             >
               Оформить заказ
               <ArrowRight className="size-4" />
@@ -226,35 +325,24 @@ export default function CartPage() {
         </div>
       </div>
 
-      {/* Не забудьте докупить */}
-      {recommended.length > 0 && (
-        <div className="mt-14">
-          <h2 className="font-heading text-xl font-bold mb-4">Не забудьте докупить</h2>
-          <div className="grid gap-4 grid-cols-1 sm:grid-cols-2 md:grid-cols-4">
-            {recommended.map((p) => (
-              <Link
-                key={p.id}
-                href={`/product/${p.slug}`}
-                className="flex gap-3 rounded-lg border border-border bg-card p-3 hover:border-primary transition-colors"
-              >
-                <div className="w-14 h-14 shrink-0">
-                  <PaintCan color={p.images[0]} className="w-14 h-14" />
-                </div>
-                <div className="min-w-0">
-                  <p className="text-sm font-medium line-clamp-2 leading-tight">{p.name}</p>
-                  <p className="mt-1 text-sm font-bold text-primary">{formatPrice(p.price)}</p>
-                </div>
-              </Link>
-            ))}
-          </div>
-        </div>
-      )}
+      <div className="mt-8 rounded-lg border border-dashed border-border/70 bg-muted/20 p-4 text-sm text-muted-foreground">
+        Здесь будет блок рекомендаций и сопутствующих товаров после подключения
+        актуального сервиса предложений.
+      </div>
     </div>
-  )
+  );
 }
 
-function Row({ label, value, className, note }: {
-  label: string; value: string; className?: string; note?: string
+function Row({
+  label,
+  value,
+  className,
+  note,
+}: {
+  label: string;
+  value: string;
+  className?: string;
+  note?: string;
 }) {
   return (
     <div className="flex items-center justify-between">
@@ -262,7 +350,7 @@ function Row({ label, value, className, note }: {
         <span>{label}</span>
         {note && <p className="text-xs text-muted-foreground">{note}</p>}
       </div>
-      <span className={cn('font-medium', className)}>{value}</span>
+      <span className={cn("font-medium", className)}>{value}</span>
     </div>
-  )
+  );
 }
