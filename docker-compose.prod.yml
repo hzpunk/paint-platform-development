@@ -12,6 +12,8 @@ services:
       - NODE_ENV=production
       - DATABASE_URL=postgresql://postgres:postgres@db:5432/paint_platform_dev
       - NEXT_PUBLIC_SITE_URL=https://kraskaprof.ru
+    mem_limit: 800M
+    memswap_limit: 3G
     depends_on:
       - db
 
