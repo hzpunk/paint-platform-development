@@ -33,6 +33,12 @@ else
 fi
 
 # ─── 3. Запуск PostgreSQL + ожидание готовности ───────────────────────
+# Если на самом хосте запущен системный postgresql, гасим его, чтобы не занимал порт 5432
+if command -v systemctl &>/dev/null && systemctl is-active --quiet postgresql; then
+  echo "--> Detected active system-wide postgresql on host. Stopping it..."
+  systemctl stop postgresql || true
+fi
+
 echo "--> Ensuring PostgreSQL is running..."
 
 # Функция ожидания — принимает способ проверки
