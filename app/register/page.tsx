@@ -335,25 +335,6 @@ export default function RegisterPage() {
             </Link>
           </motion.p>
         </div>
-
-        {/* Нижняя правовая подпись */}
-        <motion.p
-          custom={9}
-          variants={fadeUp}
-          initial="hidden"
-          animate="visible"
-          className="mt-4 text-center text-[11px] leading-relaxed text-muted-foreground/70"
-        >
-          Регистрируясь, вы соглашаетесь с{" "}
-          <Link href="/terms" className="underline transition-colors hover:text-foreground">
-            пользовательским соглашением
-          </Link>
-          ,{" "}
-          <Link href="/privacy" className="underline transition-colors hover:text-foreground">
-            политикой конфиденциальности
-          </Link>{" "}
-          и даёте согласие на обработку персональных данных (ФЗ-152).
-        </motion.p>
       </motion.div>
     </div>
   );

@@ -167,25 +167,6 @@ export default function LoginPage() {
             </Link>
           </motion.p>
         </div>
-
-        {/* Правовая информация */}
-        <motion.p
-          custom={5}
-          variants={fadeUp}
-          initial="hidden"
-          animate="visible"
-          className="mt-4 text-center text-[11px] leading-relaxed text-muted-foreground/70"
-        >
-          Входя в аккаунт, вы подтверждаете согласие с{" "}
-          <Link href="/terms" className="underline transition-colors hover:text-foreground">
-            пользовательским соглашением
-          </Link>{" "}
-          и{" "}
-          <Link href="/privacy" className="underline transition-colors hover:text-foreground">
-            политикой конфиденциальности
-          </Link>
-          .
-        </motion.p>
       </motion.div>
     </div>
   );
