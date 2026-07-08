@@ -20,7 +20,7 @@ type AuthContext = {
   user: User | null;
   loading: boolean;
   login: (email: string, password: string) => Promise<void>;
-  register: (data: { email: string; name?: string; phone?: string; password: string }) => Promise<void>;
+  register: (data: { email: string; name?: string; phone?: string; password: string; referredByCode?: string }) => Promise<void>;
   logout: () => Promise<void>;
   refresh: () => Promise<void>;
 };
@@ -82,8 +82,9 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     name?: string;
     phone?: string;
     password: string;
+    referredByCode?: string;
   }) {
-    const refCode = typeof window !== "undefined" ? localStorage.getItem("kraskaprof.referred_by_code") : null;
+    const refCode = data.referredByCode || (typeof window !== "undefined" ? localStorage.getItem("kraskaprof.referred_by_code") : null);
     const res = await fetch("/api/auth/register", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
