@@ -2,7 +2,7 @@
 
 export const dynamic = "force-dynamic";
 
-import { useState, useCallback } from "react";
+import { useState, useCallback, Suspense } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import Link from "next/link";
 import { motion, type Variants } from "framer-motion";
@@ -57,7 +57,7 @@ function getPasswordStrength(pwd: string): { label: string; color: string; width
   return { label: "Надёжный", color: "bg-green-500", width: "100%" };
 }
 
-export default function RegisterPage() {
+function RegisterForm() {
   const { register } = useAuth();
   const router = useRouter();
   const searchParams = useSearchParams();
@@ -337,5 +337,17 @@ export default function RegisterPage() {
         </div>
       </motion.div>
     </div>
+  );
+}
+
+export default function RegisterPage() {
+  return (
+    <Suspense fallback={
+      <div className="flex min-h-[calc(100vh-4rem)] items-center justify-center">
+        <span className="size-8 animate-spin rounded-full border-2 border-primary/30 border-t-primary" />
+      </div>
+    }>
+      <RegisterForm />
+    </Suspense>
   );
 }
