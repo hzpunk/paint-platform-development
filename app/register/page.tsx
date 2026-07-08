@@ -133,7 +133,8 @@ export default function RegisterPage() {
         initial={{ opacity: 0, scale: 0.97 }}
         animate={{ opacity: 1, scale: 1 }}
         transition={{ duration: 0.5, ease: [0.22, 1, 0.36, 1] }}
-        className="relative z-10 w-full max-w-[440px]"
+        className="relative z-10 w-full"
+        style={{ maxWidth: "440px", width: "100%" }}
       >
         <div className="rounded-2xl border border-border/60 bg-card/95 p-8 shadow-xl backdrop-blur-sm">
           {/* Заголовок */}
