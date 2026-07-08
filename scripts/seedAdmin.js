@@ -100,11 +100,19 @@ async function main() {
       continue;
     }
 
+    const dbProduct = await prisma.product.findUnique({
+      where: { slug: reviewData.productId }
+    });
+    if (!dbProduct) {
+      console.log("Skipping review because product not found by slug:", reviewData.productId);
+      continue;
+    }
+
     const review = await prisma.review.create({
       data: {
         id: reviewData.id,
         userId: reviewUser.id,
-        productId: reviewData.productId,
+        productId: dbProduct.id,
         rating: reviewData.rating,
         text: reviewData.text,
       },
