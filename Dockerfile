@@ -2,7 +2,7 @@
 
 # Stage 1: Install dependencies
 FROM node:20-alpine AS deps
-RUN apk add --no-cache libc6-compat
+RUN apk add --no-cache libc6-compat openssl1.1-compat
 WORKDIR /app
 COPY package*.json ./
 # --mount=type=cache сохраняет скачанные пакеты между сборками на диске сервера
@@ -11,6 +11,7 @@ RUN --mount=type=cache,target=/root/.npm \
 
 # Stage 2: Build application
 FROM node:20-alpine AS builder
+RUN apk add --no-cache libc6-compat openssl1.1-compat
 WORKDIR /app
 COPY --from=deps /app/node_modules ./node_modules
 COPY . .
@@ -25,6 +26,7 @@ RUN --mount=type=cache,target=/app/.next/cache \
 
 # Stage 3: Production runner
 FROM node:20-alpine AS runner
+RUN apk add --no-cache libc6-compat openssl1.1-compat
 WORKDIR /app
 ENV NODE_ENV=production
 ENV NEXT_TELEMETRY_DISABLED=1
