@@ -64,6 +64,8 @@ if [ -n "$DC" ] && [ -f "docker-compose.prod.yml" ]; then
   $DC -f docker-compose.prod.yml up -d db
   # Ждём через compose exec — имя сервиса всегда "db"
   wait_for_pg "$DC -f docker-compose.prod.yml exec -T db pg_isready -U postgres -q"
+  echo "--> Ensuring postgres superuser has LOGIN permissions and correct password..."
+  $DC -f docker-compose.prod.yml exec -T db psql -U postgres -d postgres -c "ALTER ROLE postgres WITH LOGIN PASSWORD 'postgres';" || true
 
 else
   # ── Способ 2: docker run (fallback) ───────────────────────────────
@@ -85,6 +87,8 @@ else
   fi
   # Ждём через docker exec с точным именем
   wait_for_pg "docker exec paint_db pg_isready -U postgres -q"
+  echo "--> Ensuring postgres superuser has LOGIN permissions and correct password..."
+  docker exec -i paint_db psql -U postgres -d postgres -c "ALTER ROLE postgres WITH LOGIN PASSWORD 'postgres';" || true
 fi
 
 # ─── 4. Резервное копирование БД (бэкап) ──────────────────────────────
