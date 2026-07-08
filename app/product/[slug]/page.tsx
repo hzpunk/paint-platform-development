@@ -3,8 +3,13 @@ import prisma from "@/lib/db";
 import { redirect } from "next/navigation";
 
 export async function generateStaticParams() {
-  const products = await prisma.product.findMany({ select: { slug: true } });
-  return products.map((p) => ({ slug: p.slug }));
+  try {
+    const products = await prisma.product.findMany({ select: { slug: true } });
+    return products.map((p) => ({ slug: p.slug }));
+  } catch (error) {
+    console.warn("Database connection failed during build, skipping static parameters generation:", error);
+    return [];
+  }
 }
 
 export default async function ProductPage({
