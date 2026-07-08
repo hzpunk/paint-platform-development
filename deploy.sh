@@ -79,7 +79,7 @@ else
       -e POSTGRES_USER=postgres \
       -e POSTGRES_PASSWORD=postgres \
       -e POSTGRES_DB=paint_platform_dev \
-      -p 5432:5432 \
+      -p 5433:5432 \
       -v paint_pgdata:/var/lib/postgresql/data \
       postgres:15
   fi
@@ -87,7 +87,31 @@ else
   wait_for_pg "docker exec paint_db pg_isready -U postgres -q"
 fi
 
-# ─── 4. Prisma: generate + apply schema ───────────────────────────────
+# ─── 4. Резервное копирование БД (бэкап) ──────────────────────────────
+echo "--> Creating database backup..."
+mkdir -p backups
+BACKUP_FILE="backups/backup_$(date +%Y%m%d_%H%M%S).sql"
+
+if [ -n "$DC" ] && [ -f "docker-compose.prod.yml" ]; then
+  if $DC -f docker-compose.prod.yml exec -T db pg_dump -U postgres paint_platform_dev > "$BACKUP_FILE" 2>/dev/null; then
+    echo "--> Backup created successfully: $BACKUP_FILE"
+  else
+    echo "--> Backup skipped or failed (possibly a fresh database with no tables yet)."
+    rm -f "$BACKUP_FILE"
+  fi
+else
+  if docker exec paint_db pg_dump -U postgres paint_platform_dev > "$BACKUP_FILE" 2>/dev/null; then
+    echo "--> Backup created successfully: $BACKUP_FILE"
+  else
+    echo "--> Backup skipped or failed (possibly a fresh database)."
+    rm -f "$BACKUP_FILE"
+  fi
+fi
+
+# Храним только последние 10 бэкапов
+ls -t backups/backup_*.sql 2>/dev/null | tail -n +11 | xargs rm -f 2>/dev/null || true
+
+# ─── 5. Prisma: generate + apply schema ───────────────────────────────
 echo "--> Running Prisma Client generation & database updates..."
 npx prisma generate
 npx prisma db push --accept-data-loss
