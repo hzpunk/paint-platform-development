@@ -30,7 +30,7 @@ export async function setAuthCookie(token: string) {
   const cookieStore = await cookies();
   cookieStore.set(COOKIE_NAME, token, {
     httpOnly: true,
-    secure: process.env.NODE_ENV === "production",
+    secure: false, // Changed from process.env.NODE_ENV === "production" to allow HTTP testing before SSL
     sameSite: "lax",
     path: "/",
     maxAge: 60 * 60 * 24 * 7, // 1 week
@@ -41,7 +41,7 @@ export async function clearAuthCookie() {
   const cookieStore = await cookies();
   cookieStore.set(COOKIE_NAME, "", {
     httpOnly: true,
-    secure: process.env.NODE_ENV === "production",
+    secure: false,
     sameSite: "lax",
     path: "/",
     expires: new Date(0),
