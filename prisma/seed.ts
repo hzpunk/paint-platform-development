@@ -11,13 +11,19 @@ async function main() {
 
   // Категории и бренды
   for (const category of categories) {
+    const { name, slug, image } = category;
     await prisma.category.upsert({
-      where: { slug: category.slug }, update: {}, create: category,
+      where: { slug },
+      update: {},
+      create: { name, slug, image },
     });
   }
   for (const brand of brands) {
+    const { name, slug } = brand;
     await prisma.brand.upsert({
-      where: { slug: brand.slug }, update: {}, create: brand,
+      where: { slug },
+      update: {},
+      create: { name, slug },
     });
   }
 
