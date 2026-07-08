@@ -120,14 +120,46 @@ echo "--> Running Prisma Client generation & database updates..."
 npx prisma generate
 
 if ! npx prisma db push --accept-data-loss; then
-  echo "❌ Error: Prisma db push failed!"
-  echo "--> Printing Database Container Logs for diagnosis:"
+  echo "⚠️ Warning: Prisma db push failed. Attempting database role repair in single-user mode..."
+  
   if [ -n "$DC" ] && [ -f "docker-compose.prod.yml" ]; then
-    $DC -f docker-compose.prod.yml logs db | tail -50
+    echo "--> Stopping database service to release volume lock..."
+    $DC -f docker-compose.prod.yml stop db
+    echo "--> Running PostgreSQL in single-user mode to restore superuser login..."
+    if $DC -f docker-compose.prod.yml run --rm --entrypoint "" db postgres --single -D /var/lib/postgresql/data postgres <<< "ALTER ROLE postgres WITH LOGIN PASSWORD 'postgres';"; then
+      echo "--> Recovery successful! Postgres superuser login restored."
+    else
+      echo "--> Recovery failed."
+    fi
+    echo "--> Restarting database service..."
+    $DC -f docker-compose.prod.yml up -d db
+    # Ждём через compose exec — имя сервиса всегда "db"
+    wait_for_pg "$DC -f docker-compose.prod.yml exec -T db pg_isready -U postgres -q"
   else
-    docker logs paint_db | tail -50
+    echo "--> Stopping database container..."
+    docker stop paint_db || true
+    echo "--> Running PostgreSQL in single-user mode to restore superuser login..."
+    if docker run --rm -v paint_pgdata:/var/lib/postgresql/data postgres:15 postgres --single -D /var/lib/postgresql/data postgres <<< "ALTER ROLE postgres WITH LOGIN PASSWORD 'postgres';"; then
+      echo "--> Recovery successful! Postgres superuser login restored."
+    else
+      echo "--> Recovery failed."
+    fi
+    echo "--> Restarting database container..."
+    docker start paint_db || true
+    wait_for_pg "docker exec paint_db pg_isready -U postgres -q"
   fi
-  exit 1
+
+  echo "--> Retrying Prisma database updates..."
+  if ! npx prisma db push --accept-data-loss; then
+    echo "❌ Error: Prisma db push failed again after role repair!"
+    echo "--> Printing Database Container Logs for diagnosis:"
+    if [ -n "$DC" ] && [ -f "docker-compose.prod.yml" ]; then
+      $DC -f docker-compose.prod.yml logs db | tail -50
+    else
+      docker logs paint_db | tail -50
+    fi
+    exit 1
+  fi
 fi
 
 # ─── 5. Build & restart app ───────────────────────────────────────────
