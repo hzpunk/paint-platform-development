@@ -126,7 +126,7 @@ if ! npx prisma db push --accept-data-loss; then
     echo "--> Stopping database service to release volume lock..."
     $DC -f docker-compose.prod.yml stop db
     echo "--> Running PostgreSQL in single-user mode to restore superuser login..."
-    if $DC -f docker-compose.prod.yml run --rm --entrypoint "" db postgres --single -D /var/lib/postgresql/data postgres <<< "ALTER ROLE postgres WITH LOGIN PASSWORD 'postgres';"; then
+    if $DC -f docker-compose.prod.yml run --rm --user postgres --entrypoint "" db postgres --single -D /var/lib/postgresql/data postgres <<< "ALTER ROLE postgres WITH LOGIN PASSWORD 'postgres';"; then
       echo "--> Recovery successful! Postgres superuser login restored."
     else
       echo "--> Recovery failed."
@@ -139,7 +139,7 @@ if ! npx prisma db push --accept-data-loss; then
     echo "--> Stopping database container..."
     docker stop paint_db || true
     echo "--> Running PostgreSQL in single-user mode to restore superuser login..."
-    if docker run --rm -v paint_pgdata:/var/lib/postgresql/data postgres:15 postgres --single -D /var/lib/postgresql/data postgres <<< "ALTER ROLE postgres WITH LOGIN PASSWORD 'postgres';"; then
+    if docker run --rm -u postgres -v paint_pgdata:/var/lib/postgresql/data postgres:15 postgres --single -D /var/lib/postgresql/data postgres <<< "ALTER ROLE postgres WITH LOGIN PASSWORD 'postgres';"; then
       echo "--> Recovery successful! Postgres superuser login restored."
     else
       echo "--> Recovery failed."
