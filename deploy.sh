@@ -114,7 +114,17 @@ ls -t backups/backup_*.sql 2>/dev/null | tail -n +11 | xargs rm -f 2>/dev/null |
 # ─── 5. Prisma: generate + apply schema ───────────────────────────────
 echo "--> Running Prisma Client generation & database updates..."
 npx prisma generate
-npx prisma db push --accept-data-loss
+
+if ! npx prisma db push --accept-data-loss; then
+  echo "❌ Error: Prisma db push failed!"
+  echo "--> Printing Database Container Logs for diagnosis:"
+  if [ -n "$DC" ] && [ -f "docker-compose.prod.yml" ]; then
+    $DC -f docker-compose.prod.yml logs db | tail -50
+  else
+    docker logs paint_db | tail -50
+  fi
+  exit 1
+fi
 
 # ─── 5. Build & restart app ───────────────────────────────────────────
 if command -v pm2 &>/dev/null && [ -f "ecosystem.config.js" ]; then
