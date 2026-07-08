@@ -29,11 +29,26 @@ async function main() {
 
   // Продукты
   for (const product of products) {
-    const category = await prisma.category.findUnique({ where: { slug: product.categorySlug } });
-    const brand = await prisma.brand.findUnique({ where: { slug: product.brand } });
+    const category = await prisma.category.findFirst({
+      where: {
+        OR: [
+          { slug: { equals: product.categorySlug, mode: "insensitive" } },
+          { name: { equals: product.categorySlug, mode: "insensitive" } },
+        ],
+      },
+    });
+
+    const brand = await prisma.brand.findFirst({
+      where: {
+        OR: [
+          { slug: { equals: product.brand, mode: "insensitive" } },
+          { name: { equals: product.brand, mode: "insensitive" } },
+        ],
+      },
+    });
 
     if (!category || !brand) {
-      console.warn(`Skipping product ${product.name}: category or brand not found`);
+      console.warn(`Skipping product ${product.name}: category (${product.categorySlug}) or brand (${product.brand}) not found`);
       continue;
     }
 
