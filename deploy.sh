@@ -81,7 +81,7 @@ else
       -e POSTGRES_USER=postgres \
       -e POSTGRES_PASSWORD=postgres \
       -e POSTGRES_DB=paint_platform_dev \
-      -p 5433:5432 \
+      -p 127.0.0.1:5433:5432 \
       -v paint_pgdata:/var/lib/postgresql/data \
       postgres:15
   fi
