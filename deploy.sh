@@ -162,7 +162,12 @@ if ! npx prisma db push --accept-data-loss; then
   fi
 fi
 
-# ─── 5. Build & restart app ───────────────────────────────────────────
+# ─── 5. Seeding database (products, categories, brands, admin & demo users) ───
+echo "--> Seeding database..."
+npx prisma db seed || true
+node scripts/seedAdmin.js || true
+
+# ─── 6. Build & restart app ───────────────────────────────────────────
 if command -v pm2 &>/dev/null && [ -f "ecosystem.config.js" ]; then
   echo "--> PM2 detected! Building and reloading..."
   npm run build
