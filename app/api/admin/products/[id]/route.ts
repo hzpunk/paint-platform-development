@@ -127,6 +127,7 @@ export async function DELETE(
     const notAllowed = await requireAdmin(_);
     if (notAllowed) return notAllowed;
 
+    await prisma.review.deleteMany({ where: { productId: id } });
     await prisma.product.delete({ where: { id } });
     return new Response(null, { status: 204 });
   } catch (error) {

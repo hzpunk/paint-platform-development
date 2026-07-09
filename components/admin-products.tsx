@@ -61,6 +61,26 @@ export default function AdminProducts() {
     }
   };
 
+  const handleDeleteProduct = async (id: string) => {
+    if (!confirm("Вы уверены, что хотите удалить этот товар?")) return;
+
+    try {
+      const response = await fetch(`/api/admin/products/${id}`, {
+        method: "DELETE",
+      });
+
+      if (!response.ok) {
+        const errorData = await response.json().catch(() => ({}));
+        throw new Error(errorData.error || "Ошибка при удалении товара");
+      }
+
+      showToast("Товар успешно удален", "success");
+      fetchProducts();
+    } catch (err) {
+      showToast(err instanceof Error ? err.message : "Не удалось удалить товар", "error");
+    }
+  };
+
   const normalizeColors = (value: Product["colors"]) => {
     if (!Array.isArray(value)) return [] as ProductColor[];
 
@@ -213,6 +233,13 @@ export default function AdminProducts() {
                       }
                     >
                       Открыть
+                    </Button>
+                    <Button
+                      variant="destructive"
+                      size="sm"
+                      onClick={() => handleDeleteProduct(product.id)}
+                    >
+                      Удалить
                     </Button>
                   </div>
                 </div>

@@ -75,6 +75,10 @@ export async function DELETE(
   const notAuthorized = await requireAdmin(req);
   if (notAuthorized) return notAuthorized;
 
+  await prisma.user.updateMany({
+    where: { referredById: params.id },
+    data: { referredById: null },
+  });
   await prisma.user.delete({ where: { id: params.id } });
 
   return new Response(null, { status: 204 });

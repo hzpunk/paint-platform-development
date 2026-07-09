@@ -1,12 +1,21 @@
-import { PrismaClient, Prisma } from "@prisma/client";
-import { products, categories, brands } from "../lib/data";
-import type { Product, ProductSpecs, Packaging } from "../lib/types";
+import { PrismaClient } from "@prisma/client";
+import { categories, brands } from "../lib/data";
 import * as dotenv from "dotenv";
 
 dotenv.config();
 const prisma = new PrismaClient();
 
 async function main() {
+  console.log("Cleaning database...");
+  await prisma.review.deleteMany({});
+  await prisma.favorite.deleteMany({});
+  await prisma.orderItem.deleteMany({});
+  await prisma.order.deleteMany({});
+  await prisma.product.deleteMany({});
+  await prisma.category.deleteMany({});
+  await prisma.brand.deleteMany({});
+  await prisma.user.deleteMany({ where: { role: { not: "admin" } } });
+
   console.log("Seeding database...");
 
   // Категории и бренды
@@ -24,61 +33,6 @@ async function main() {
       where: { slug },
       update: {},
       create: { name, slug },
-    });
-  }
-
-  // Продукты
-  for (const product of products) {
-    const category = await prisma.category.findFirst({
-      where: {
-        OR: [
-          { slug: { equals: product.categorySlug, mode: "insensitive" } },
-          { name: { equals: product.categorySlug, mode: "insensitive" } },
-        ],
-      },
-    });
-
-    const brand = await prisma.brand.findFirst({
-      where: {
-        OR: [
-          { slug: { equals: product.brand, mode: "insensitive" } },
-          { name: { equals: product.brand, mode: "insensitive" } },
-        ],
-      },
-    });
-
-    if (!category || !brand) {
-      console.warn(`Skipping product ${product.name}: category (${product.categorySlug}) or brand (${product.brand}) not found`);
-      continue;
-    }
-
-    const productData = {
-      name: product.name,
-      slug: product.slug,
-      description: product.description,
-      price: product.price,
-      oldPrice: product.oldPrice,
-      stock: typeof product.stock === "number" ? product.stock : ((product as any).inStock ? 50 : 0),
-      images: product.images,
-      category: { connect: { id: category.id } },
-      brand: { connect: { id: brand.id } },
-      type: product.type,
-      surfaces: product.surfaces,
-      badges: product.badges,
-      rating: product.rating,
-      reviewsCount: product.reviewsCount,
-      colorable: product.colorable,
-      shortSpec: product.shortSpec,
-      application: product.application,
-      specs: product.specs as unknown as Prisma.InputJsonValue,
-      packaging: product.packaging as unknown as Prisma.InputJsonValue,
-      colors: product.colors as unknown as Prisma.InputJsonValue,
-    };
-
-    await prisma.product.upsert({
-      where: { slug: product.slug },
-      update: productData,
-      create: productData,
     });
   }
 

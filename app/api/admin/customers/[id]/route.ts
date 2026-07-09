@@ -55,6 +55,10 @@ export async function DELETE(
 
   await prisma.favorite.deleteMany({ where: { userId: id } });
   await prisma.review.deleteMany({ where: { userId: id } });
+  await prisma.user.updateMany({
+    where: { referredById: id },
+    data: { referredById: null },
+  });
   await prisma.user.delete({ where: { id } });
   return new Response(null, { status: 204 });
 }

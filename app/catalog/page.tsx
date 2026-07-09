@@ -589,7 +589,7 @@ function CatalogContent() {
               {selectedBrands.map((slug) => (
                 <FilterChip
                   key={`b-${slug}`}
-                  label={BRAND_NAMES[slug] ?? slug}
+                  label={DEFAULT_BRAND_NAMES[slug] ?? slug}
                   onRemove={() =>
                     toggle(selectedBrands, slug, setSelectedBrands)
                   }
